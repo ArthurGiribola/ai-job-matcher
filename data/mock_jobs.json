@@ -1,0 +1,44 @@
+[
+  {
+    "id": "job-001",
+    "title": "Backend Python Engineer",
+    "company": "Nubank",
+    "location": "São Paulo",
+    "remote": true,
+    "seniority": "mid",
+    "skills_required": ["Python", "FastAPI", "PostgreSQL", "Docker", "Kubernetes"],
+    "description": "Atuar no desenvolvimento de APIs e serviços backend escaláveis.",
+    "posted_at": "2026-03-25T12:00:00Z",
+    "source": "mock",
+    "url": "https://example.com/jobs/job-001",
+    "salary_range": [7000, 11000]
+  },
+  {
+    "id": "job-002",
+    "title": "Machine Learning Engineer",
+    "company": "iFood",
+    "location": "Campinas",
+    "remote": true,
+    "seniority": "mid",
+    "skills_required": ["Python", "Machine Learning", "scikit-learn", "AWS", "SQL"],
+    "description": "Construção de pipelines de ML e modelos aplicados a problemas reais.",
+    "posted_at": "2026-03-23T12:00:00Z",
+    "source": "mock",
+    "url": "https://example.com/jobs/job-002",
+    "salary_range": [8000, 13000]
+  },
+  {
+    "id": "job-003",
+    "title": "Junior Backend Developer",
+    "company": "Stone",
+    "location": "Remoto",
+    "remote": true,
+    "seniority": "junior",
+    "skills_required": ["Python", "Django", "SQL", "Git"],
+    "description": "Desenvolvimento e manutenção de serviços backend.",
+    "posted_at": "2026-03-20T12:00:00Z",
+    "source": "mock",
+    "url": "https://example.com/jobs/job-003",
+    "salary_range": [4000, 7000]
+  }
+]

@@ -1,0 +1,42 @@
+{
+  "Python": ["python", "py"],
+  "Java": ["java"],
+  "JavaScript": ["javascript", "js"],
+  "TypeScript": ["typescript", "ts"],
+  "C++": ["c++", "cpp"],
+  "C#": ["c#", "csharp"],
+
+  "FastAPI": ["fastapi"],
+  "Django": ["django"],
+  "Flask": ["flask"],
+  "Spring": ["spring", "spring boot"],
+  "Node.js": ["node", "nodejs", "node.js"],
+  "React": ["react", "react.js"],
+  "Next.js": ["next", "nextjs"],
+
+  "PostgreSQL": ["postgres", "postgresql"],
+  "MySQL": ["mysql"],
+  "SQLite": ["sqlite"],
+  "MongoDB": ["mongodb", "mongo"],
+
+  "Docker": ["docker"],
+  "Kubernetes": ["kubernetes", "k8s"],
+  "Terraform": ["terraform"],
+
+  "AWS": ["aws", "amazon web services"],
+  "GCP": ["gcp", "google cloud"],
+  "Azure": ["azure"],
+
+  "Machine Learning": ["machine learning", "ml"],
+  "Deep Learning": ["deep learning", "dl"],
+  "NLP": ["nlp", "natural language processing"],
+
+  "Git": ["git"],
+  "Linux": ["linux"],
+  "REST API": ["rest", "rest api"],
+  "SQL": ["sql"],
+
+  "scikit-learn": ["sklearn", "scikit"],
+  "TensorFlow": ["tensorflow"],
+  "PyTorch": ["pytorch", "torch"]
+}
