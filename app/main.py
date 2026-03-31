@@ -92,3 +92,67 @@ def quick_match(skills: list[str]):
         "top_5_jobs": ranked,
         "top_missing_skills": get_top_missing_skills(ranked),
     }
+from app.services.resume_parser import parse_resume_text, parse_resume_pdf
+from fastapi import UploadFile, File
+import tempfile
+import os
+
+
+@app.post("/resume/analyze-text", tags=["Resume"])
+def analyze_resume_text(text: str):
+    """
+    Analisa texto do currículo e retorna perfil estruturado.
+    Cole o texto do currículo diretamente.
+    """
+    if not text or len(text) < 50:
+        raise HTTPException(status_code=400, detail="Texto muito curto. Cole o conteúdo completo do currículo.")
+    profile = parse_resume_text(text)
+    return {
+        "profile": profile,
+        "message": f"Encontradas {profile['total_skills']} skills. Nível detectado: {profile['seniority']}."
+    }
+
+
+@app.post("/resume/upload", tags=["Resume"])
+async def upload_resume(file: UploadFile = File(...)):
+    """
+    Faz upload de currículo em PDF e retorna perfil estruturado.
+    """
+    if not file.filename.endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Apenas arquivos PDF são aceitos.")
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+        content = await file.read()
+        tmp.write(content)
+        tmp_path = tmp.name
+    try:
+        profile = parse_resume_pdf(tmp_path)
+        return {
+            "profile": profile,
+            "message": f"Currículo processado. Encontradas {profile.get('total_skills', 0)} skills."
+        }
+    finally:
+        os.unlink(tmp_path)
+
+
+@app.post("/resume/analyze-and-match", tags=["Resume"])
+def analyze_and_match(text: str, seniority: str = "junior"):
+    """
+    Analisa o currículo E já retorna as vagas ranqueadas.
+    Tudo em uma chamada só.
+    """
+    if not text or len(text) < 50:
+        raise HTTPException(status_code=400, detail="Texto muito curto.")
+    profile = parse_resume_text(text)
+    ranked = rank_jobs(
+        jobs=JOBS,
+        candidate_skills=profile["skills"],
+        candidate_seniority=profile.get("seniority", seniority),
+        limit=10,
+    )
+    return {
+        "profile": profile,
+        "total_jobs_analyzed": len(JOBS),
+        "total_matches": len(ranked),
+        "results": ranked,
+        "top_missing_skills": get_top_missing_skills(ranked),
+    }
