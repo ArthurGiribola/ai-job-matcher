@@ -24,7 +24,7 @@ def _get_adzuna_credentials() -> tuple[str | None, str | None]:
     return app_id, app_key
 
 MOCK_PATH = Path(__file__).parent.parent.parent / "data" / "mock_jobs.json"
-CACHE_PATH = Path(__file__).parent.parent.parent / "data" / "jobs_cache.json"
+_DATA_DIR = Path(__file__).parent.parent.parent / "data"
 
 SUPPORTED_COUNTRIES = {
     "gb": "Reino Unido",
@@ -64,6 +64,43 @@ SKILL_KEYWORDS = [
 def extract_skills_from_text(text: str) -> list[str]:
     text_lower = text.lower()
     return [s for s in SKILL_KEYWORDS if s.lower() in text_lower]
+
+
+def extract_skills_with_ai(title: str, description: str) -> list[str]:
+    """
+    Extrai skills da vaga usando Claude Haiku.
+    Fallback para keyword matching se Claude não estiver disponível.
+    """
+    try:
+        import anthropic
+        from app.services.resume_analyzer import _get_api_key
+        api_key = _get_api_key()
+        if not api_key:
+            return extract_skills_from_text(f"{title} {description}")
+
+        client = anthropic.Anthropic(api_key=api_key)
+        prompt = f"""Extract the technical skills required for this job.
+Return ONLY a JSON array of skill names, nothing else.
+Example: ["Python", "Docker", "PostgreSQL"]
+
+Job title: {title}
+Job description: {description[:1000]}"""
+
+        message = client.messages.create(
+            model="claude-haiku-4-5",
+            max_tokens=200,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        import json
+        raw = message.content[0].text.strip()
+        raw = raw.replace("```json", "").replace("```", "").strip()
+        skills = json.loads(raw)
+        if isinstance(skills, list):
+            return skills[:15]
+    except Exception as e:
+        print(f"AI skill extraction failed, using keywords: {e}")
+
+    return extract_skills_from_text(f"{title} {description}")
 
 
 def detect_seniority(title: str) -> str:
@@ -166,6 +203,14 @@ def get_jobs(
         country_code=country,
     )
 
+    if not real_jobs:
+        real_jobs = fetch_adzuna_jobs(
+            keywords="python developer",
+            location=location,
+            results_per_page=limit,
+            country_code=country,
+        )
+
     mock_jobs = []
     if country == "br" and MOCK_PATH.exists():
         with open(MOCK_PATH, "r", encoding="utf-8") as f:
@@ -180,8 +225,9 @@ def get_jobs(
             seen.add(key)
             unique.append(job)
 
-    CACHE_PATH.parent.mkdir(exist_ok=True)
-    with open(CACHE_PATH, "w", encoding="utf-8") as f:
+    cache_path = _DATA_DIR / f"jobs_cache_{country}.json"
+    cache_path.parent.mkdir(exist_ok=True)
+    with open(cache_path, "w", encoding="utf-8") as f:
         json.dump(unique[:limit], f, ensure_ascii=False, indent=2)
 
     return unique[:limit]

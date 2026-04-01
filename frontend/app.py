@@ -28,6 +28,22 @@ SKILL_RESOURCES = {
     "Git": "https://git-scm.com/book/en/v2",
     "Sql": "https://www.w3schools.com/sql/",
     "Scikit-Learn": "https://scikit-learn.org/stable/tutorial/",
+    "Pandas": "https://pandas.pydata.org/docs/getting_started/",
+    "Numpy": "https://numpy.org/learn/",
+    "Rest Api": "https://restfulapi.net/",
+    "Microservices": "https://microservices.io/",
+    "Statistics": "https://www.khanacademy.org/math/statistics-probability",
+    "Spark": "https://spark.apache.org/docs/latest/quick-start.html",
+    "Airflow": "https://airflow.apache.org/docs/apache-airflow/stable/tutorial/",
+    "Graphql": "https://graphql.org/learn/",
+    "Linux": "https://linuxjourney.com/",
+    "Ci/Cd": "https://www.redhat.com/en/topics/devops/what-is-ci-cd",
+    "Mysql": "https://dev.mysql.com/doc/",
+    "Typescript": "https://www.typescriptlang.org/docs/",
+    "Vue": "https://vuejs.org/guide/introduction.html",
+    "Postgresql": "https://www.postgresql.org/docs/current/tutorial.html",
+    "Mongodb": "https://www.mongodb.com/docs/manual/tutorial/",
+    "Redis": "https://redis.io/docs/getting-started/",
 }
 
 CURRENCY_BY_COUNTRY = {
@@ -240,7 +256,8 @@ if analyze_btn:
                                     job_country,
                                     source,
                                 )
-                                st.metric("Salário", salary_str)
+                                st.markdown("**Salário**")
+                                st.markdown(f"### {salary_str}")
                             with col3:
                                 st.metric("Modalidade", "🌐 Remoto" if job.get("remote") else "🏢 Presencial")
 

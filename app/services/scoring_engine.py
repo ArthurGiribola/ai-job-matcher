@@ -181,6 +181,7 @@ def rank_jobs(
                     "remote": job.get("remote"), "seniority": job.get("seniority"),
                     "salary_min": job.get("salary_min"), "salary_max": job.get("salary_max"),
                     "posted_at": job.get("posted_at"), "url": job.get("url"),
+                    "source": job.get("source", "adzuna"), "country": job.get("country", "gb"),
                 },
                 "score": match["score"],
                 "score_percent": match["score_percent"],
