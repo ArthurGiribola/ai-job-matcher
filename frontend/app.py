@@ -339,28 +339,34 @@ if analyze_btn:
                         elif job.get("source") == "mock":
                             st.caption("🔒 Vaga demonstrativa — sem link disponível")
 
-                        cover_key = f"cover_text_{i}"
                         if st.button(f"✉️ Gerar Cover Letter", key=f"cover_btn_{i}"):
                             with st.spinner("✍️ Claude escrevendo seu cover letter..."):
                                 cover = generate_cover_letter(analysis, job)
                             if cover:
-                                st.session_state[cover_key] = cover
+                                st.session_state[f"cover_text_{i}"] = cover
+                                st.session_state["cover_job_index"] = i
+                                st.session_state["cover_job_title"] = job.get("title", "")
                             else:
                                 st.warning("Não foi possível gerar o cover letter. Tente novamente.")
 
-                        if cover_key in st.session_state:
-                            st.markdown("---")
-                            st.markdown("**✉️ Cover Letter gerado pelo Claude:**")
-                            st.text_area(
-                                label="",
-                                value=st.session_state[cover_key],
-                                height=300,
-                                key=f"cover_area_{i}",
-                            )
-                            st.caption("📋 Selecione o texto acima e copie — personalize antes de enviar!")
-                            if st.button("🗑️ Limpar cover letter", key=f"clear_{i}"):
-                                del st.session_state[cover_key]
-                                st.rerun()
+                # Cover letter fora do loop — persiste sem fechar expanders
+                active_cover = st.session_state.get("cover_job_index")
+                if active_cover is not None:
+                    cover_text = st.session_state.get(f"cover_text_{active_cover}", "")
+                    cover_title = st.session_state.get("cover_job_title", "")
+                    if cover_text:
+                        st.markdown("---")
+                        st.markdown(f"**✉️ Cover Letter gerado para: {cover_title}**")
+                        st.text_area(
+                            label="",
+                            value=cover_text,
+                            height=300,
+                            key="cover_display",
+                        )
+                        st.caption("📋 Copie o texto acima e personalize antes de enviar!")
+                        if st.button("🗑️ Fechar cover letter"):
+                            del st.session_state["cover_job_index"]
+                            st.rerun()
 
         except Exception as e:
             st.error(f"Erro inesperado: {str(e)}")
