@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Environment variables - NUNCA subir para o GitHub
+.env
+
+# VS Code
+.vscode/
+
+# pytest
+.pytest_cache/
+
+# OS
+.DS_Store
+Thumbs.db

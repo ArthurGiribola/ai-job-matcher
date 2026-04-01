@@ -13,16 +13,23 @@ app = FastAPI(
     version="1.0.0",
 )
 
-JOBS_PATH = Path(__file__).parent.parent / "data" / "mock_jobs.json"
+from app.services.job_collector import get_jobs
 
 def load_jobs() -> list[dict]:
-    if not JOBS_PATH.exists():
-        return []
-    with open(JOBS_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        jobs = get_jobs(limit=40)
+        if jobs:
+            return jobs
+    except Exception as e:
+        print(f"Erro ao carregar vagas: {e}")
+    # Fallback para mock
+    mock_path = Path(__file__).parent.parent / "data" / "mock_jobs.json"
+    if mock_path.exists():
+        with open(mock_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
 
-JOBS = load_jobs()
-
+JOBS = load_jobs()\
 
 class Filters(BaseModel):
     remote: Optional[bool] = Field(None)
