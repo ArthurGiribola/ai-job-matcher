@@ -116,35 +116,36 @@ def fetch_adzuna_jobs(
     except requests.exceptions.RequestException as e:
         print(f"Erro Adzuna: {e}")
         return []
-
-
+    
 def get_jobs(
     candidate_skills: list[str] = None,
     limit: int = 20,
+    country: str = "gb",
+    location: str = "",
 ) -> list[dict]:
     """
     Retorna vagas combinando Adzuna + mock jobs.
     Adzuna primeiro, mock como fallback/complemento.
     """
-    # Monta query com top skills do candidato
     if candidate_skills:
         query = " ".join(candidate_skills[:3])
     else:
         query = "python developer"
 
-    # Busca vagas reais
-    real_jobs = fetch_adzuna_jobs(keywords=query, results_per_page=limit)
+    where = location if location else country
+    real_jobs = fetch_adzuna_jobs(
+        keywords=query,
+        location=where,
+        results_per_page=limit,
+    )
 
-    # Carrega mock jobs como complemento
     mock_jobs = []
     if MOCK_PATH.exists():
         with open(MOCK_PATH, "r", encoding="utf-8") as f:
             mock_jobs = json.load(f)
 
-    # Combina — vagas reais primeiro
     all_jobs = real_jobs + mock_jobs
 
-    # Remove duplicatas por título + empresa
     seen = set()
     unique = []
     for job in all_jobs:
@@ -153,7 +154,6 @@ def get_jobs(
             seen.add(key)
             unique.append(job)
 
-    # Salva cache
     CACHE_PATH.parent.mkdir(exist_ok=True)
     with open(CACHE_PATH, "w", encoding="utf-8") as f:
         json.dump(unique[:limit], f, ensure_ascii=False, indent=2)

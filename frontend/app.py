@@ -116,7 +116,12 @@ if analyze_btn:
             try:
                 profile = parse_resume_text(final_text)
                 location = city if city else ("london" if country_code == "gb" else country_code)
-                jobs = get_jobs(candidate_skills=profile["skills"], limit=40)
+                jobs = get_jobs(
+    candidate_skills=profile["skills"],
+    limit=40,
+    country=country_code,
+    location=city if city else "",
+)
                 results = rank_jobs(
                     jobs=jobs,
                     candidate_skills=profile["skills"],
