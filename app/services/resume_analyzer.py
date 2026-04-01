@@ -86,7 +86,7 @@ def analyze_resume(resume_text: str) -> dict:
     try:
         client = _get_client()
         message = client.messages.create(
-            model="claude-haiku-4-5",
+            model="claude-haiku-4-5-20251001",
             max_tokens=1500,
             messages=[
                 {
