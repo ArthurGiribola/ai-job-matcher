@@ -44,6 +44,15 @@ SKILL_RESOURCES = {
     "Postgresql": "https://www.postgresql.org/docs/current/tutorial.html",
     "Mongodb": "https://www.mongodb.com/docs/manual/tutorial/",
     "Redis": "https://redis.io/docs/getting-started/",
+    "C++": "https://www.learncpp.com/",
+    "C": "https://www.learn-c.org/",
+    "Oop": "https://realpython.com/python3-object-oriented-programming/",
+    "Power Bi": "https://learn.microsoft.com/en-us/power-bi/",
+    "Tableau": "https://www.tableau.com/learn/training",
+    "Angular": "https://angular.io/tutorial",
+    "Node.Js": "https://nodejs.org/en/learn/getting-started/introduction-to-nodejs",
+    "Django": "https://docs.djangoproject.com/en/stable/intro/tutorial01/",
+    "Flask": "https://flask.palletsprojects.com/en/latest/tutorial/",
 }
 
 CURRENCY_BY_COUNTRY = {
@@ -246,8 +255,11 @@ if analyze_btn:
                 st.markdown("---")
                 st.subheader("📈 Skills para aprender")
                 st.markdown("Baseado nas vagas que mais combinam com você:")
+                SKIP_SKILLS = {"oop", "agile", "scrum", "communication", "teamwork", "problem solving"}
                 for item in missing:
                     skill_name = item['skill'].title()
+                    if item['skill'].lower() in SKIP_SKILLS:
+                        continue
                     count = item['appears_in_top_jobs']
                     resource = SKILL_RESOURCES.get(skill_name, "")
                     col1, col2 = st.columns([4, 1])
