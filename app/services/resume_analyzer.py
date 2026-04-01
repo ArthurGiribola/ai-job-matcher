@@ -40,18 +40,34 @@ Resume:
 {resume_text}"""
 
 
+def _get_api_key() -> str | None:
+    """Lê ANTHROPIC_API_KEY do .env, st.secrets ou variável de ambiente."""
+    # 1. .env local (via python-dotenv)
+    key = os.getenv("ANTHROPIC_API_KEY")
+    if key:
+        return key
+    # 2. Streamlit Cloud secrets (dashboard ou .streamlit/secrets.toml)
+    try:
+        import streamlit as st
+        key = st.secrets["ANTHROPIC_API_KEY"]
+        if key:
+            return key
+    except KeyError:
+        print("ANTHROPIC_API_KEY not found in st.secrets")
+    except Exception as e:
+        print(f"Could not read st.secrets: {e}")
+    return None
+
+
 def _get_client():
     """Cria o client Anthropic — lê chave do .env ou st.secrets."""
     import anthropic
-    api_key = os.getenv("ANTHROPIC_API_KEY")
+    api_key = _get_api_key()
     if not api_key:
-        try:
-            import streamlit as st
-            api_key = st.secrets.get("ANTHROPIC_API_KEY")
-        except Exception:
-            pass
-    if not api_key:
-        raise ValueError("ANTHROPIC_API_KEY não encontrada")
+        raise ValueError(
+            "ANTHROPIC_API_KEY não encontrada. "
+            "Defina via .env (local) ou Streamlit Cloud > Settings > Secrets."
+        )
     return anthropic.Anthropic(api_key=api_key)
 
 

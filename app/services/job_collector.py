@@ -7,9 +7,21 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-ADZUNA_APP_ID = os.getenv("ADZUNA_APP_ID")
-ADZUNA_APP_KEY = os.getenv("ADZUNA_APP_KEY")
 ADZUNA_BASE_URL = "https://api.adzuna.com/v1/api/jobs"
+
+
+def _get_adzuna_credentials() -> tuple[str | None, str | None]:
+    """Lê credenciais Adzuna do .env ou st.secrets (lazy, para Streamlit Cloud)."""
+    app_id = os.getenv("ADZUNA_APP_ID")
+    app_key = os.getenv("ADZUNA_APP_KEY")
+    if not app_id or not app_key:
+        try:
+            import streamlit as st
+            app_id = app_id or st.secrets.get("ADZUNA_APP_ID")
+            app_key = app_key or st.secrets.get("ADZUNA_APP_KEY")
+        except Exception:
+            pass
+    return app_id, app_key
 
 MOCK_PATH = Path(__file__).parent.parent.parent / "data" / "mock_jobs.json"
 CACHE_PATH = Path(__file__).parent.parent.parent / "data" / "jobs_cache.json"
@@ -104,7 +116,8 @@ def fetch_adzuna_jobs(
     page: int = 1,
     country_code: str = "gb",
 ) -> list[dict]:
-    if not ADZUNA_APP_ID or not ADZUNA_APP_KEY:
+    app_id, app_key = _get_adzuna_credentials()
+    if not app_id or not app_key:
         print("Credenciais Adzuna não encontradas.")
         return []
 
@@ -113,8 +126,8 @@ def fetch_adzuna_jobs(
 
     url = f"{ADZUNA_BASE_URL}/{country_code}/search/{page}"
     params = {
-        "app_id": ADZUNA_APP_ID,
-        "app_key": ADZUNA_APP_KEY,
+        "app_id": app_id,
+        "app_key": app_key,
         "results_per_page": results_per_page,
         "what": keywords,
         "content-type": "application/json",
