@@ -39,12 +39,19 @@ Rules:
 Resume:
 {resume_text}"""
 
+
 def _get_client():
-    """Cria o client Anthropic sob demanda — evita erro na importação."""
+    """Cria o client Anthropic — lê chave do .env ou st.secrets."""
     import anthropic
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
-        raise ValueError("ANTHROPIC_API_KEY não encontrada no .env")
+        try:
+            import streamlit as st
+            api_key = st.secrets.get("ANTHROPIC_API_KEY")
+        except Exception:
+            pass
+    if not api_key:
+        raise ValueError("ANTHROPIC_API_KEY não encontrada")
     return anthropic.Anthropic(api_key=api_key)
 
 
@@ -62,7 +69,6 @@ def _parse_claude_response(raw: str) -> dict:
 def analyze_resume(resume_text: str) -> dict:
     try:
         client = _get_client()
-
         message = client.messages.create(
             model="claude-haiku-4-5",
             max_tokens=1500,
@@ -73,13 +79,10 @@ def analyze_resume(resume_text: str) -> dict:
                 }
             ]
         )
-
         raw = message.content[0].text
-        print(f"DEBUG RAW: {repr(raw[:200])}")
         result = _parse_claude_response(raw)
         result["source"] = "claude"
         return result
-
     except json.JSONDecodeError as e:
         print(f"Erro JSON: {e}")
         return _fallback_analysis(resume_text)
