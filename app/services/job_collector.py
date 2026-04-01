@@ -136,7 +136,7 @@ def normalize_job(raw: dict, country_code: str = "gb") -> dict:
         "remote": is_remote,
         "seniority": detect_seniority(title),
         "skills_required": extract_skills_from_text(f"{title} {description}"),
-        "description": description[:500],
+        "description": description[:2000],
         "posted_at": posted_at,
         "source": "adzuna",
         "url": url,
