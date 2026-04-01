@@ -31,6 +31,7 @@ tests/
 - Phase 2 DONE: Extração estruturada com Claude Haiku (skills com níveis, seniority, red flags)
 - Phase 3 DONE: Hiring probability (Logistic Regression) — exibe "Probabilidade de chamada: X%"
 - Phase 4 DONE: Explanation engine — Claude gera conselho personalizado para top 3 vagas
+- Cover letter gerado pelo Claude para cada vaga
 - Scoring engine: 40% semantic + 20% seniority + 15% recency + 15% filters + 10% bonus
 - Remotive API integrada como terceira fonte de vagas (gratuita, sem chave)
 - Cache de vagas separado por país (jobs_cache_{country}.json)

@@ -98,12 +98,13 @@ def analyze_resume(resume_text: str) -> dict:
         raw = message.content[0].text
         result = _parse_claude_response(raw)
         result["source"] = "claude"
+        print(f"[Claude OK] analyze_resume — {len(raw)} chars")
         return result
     except json.JSONDecodeError as e:
-        print(f"Erro JSON: {e}")
+        print(f"[Claude FAIL] analyze_resume — {type(e).__name__}: {e}")
         return _fallback_analysis(resume_text)
     except Exception as e:
-        print(f"Erro Claude: {e}")
+        print(f"[Claude FAIL] analyze_resume — {type(e).__name__}: {e}")
         return _fallback_analysis(resume_text)
 
 
@@ -175,9 +176,11 @@ Regras:
             max_tokens=500,
             messages=[{"role": "user", "content": prompt}]
         )
-        return message.content[0].text.strip()
+        result = message.content[0].text.strip()
+        print(f"[Claude OK] generate_cover_letter — {len(result)} chars")
+        return result
     except Exception as e:
-        print(f"Cover letter failed: {e}")
+        print(f"[Claude FAIL] generate_cover_letter — {type(e).__name__}: {e}")
         return ""
 
 
@@ -213,6 +216,7 @@ In 2-3 sentences in Portuguese, explain:
 2. What to emphasize in the application
 3. The biggest gap to address
 
+IMPORTANTE: Responda SEMPRE em português do Brasil, independente do idioma do currículo ou da vaga.
 Be direct and actionable. No fluff."""
 
         message = client.messages.create(
@@ -220,7 +224,9 @@ Be direct and actionable. No fluff."""
             max_tokens=200,
             messages=[{"role": "user", "content": prompt}]
         )
-        return message.content[0].text.strip()
+        result = message.content[0].text.strip()
+        print(f"[Claude OK] generate_job_explanation — {len(result)} chars")
+        return result
     except Exception as e:
-        print(f"Explanation failed: {e}")
+        print(f"[Claude FAIL] generate_job_explanation — {type(e).__name__}: {e}")
         return ""
