@@ -110,15 +110,24 @@ with tab2:
                 resume_text_from_pdf = extract_text_from_pdf(tmp_path)
                 os.unlink(tmp_path)
                 if resume_text_from_pdf:
-                    char_count = len(resume_text_from_pdf)
-                    word_count = len(resume_text_from_pdf.split())
-                    st.success(f"✅ PDF processado — {char_count} caracteres, {word_count} palavras extraídas.")
-                    st.text_area(
-                        "Texto extraído (prévia):",
-                        resume_text_from_pdf[:800] + "..." if len(resume_text_from_pdf) > 800 else resume_text_from_pdf,
-                        height=200,
-                        disabled=True
-                    )
+                    lines = [l.strip() for l in resume_text_from_pdf.split('\n') if l.strip()]
+                    nome = lines[0] if lines else "Candidato"
+
+                    from app.services.resume_parser import parse_resume_text
+                    quick_profile = parse_resume_text(resume_text_from_pdf)
+
+                    st.success(f"✅ PDF processado com sucesso!")
+
+                    st.markdown(f"""
+                    <div style="background: #1e1e2e; border: 1px solid #444; border-radius: 12px; padding: 20px; margin: 10px 0;">
+                        <h3 style="margin:0; color:#fff;">👤 {nome}</h3>
+                        <p style="color:#aaa; margin: 4px 0;">{lines[1] if len(lines) > 1 else ''}</p>
+                        <p style="color:#888; font-size:0.85em;">{lines[2] if len(lines) > 2 else ''}</p>
+                        <hr style="border-color:#333; margin: 12px 0;">
+                        <p style="color:#ccc; margin-bottom: 8px;">🛠️ <b>Skills detectadas:</b></p>
+                        <p>{' '.join([f'<span style="background:#2d2d4e; color:#7c7cff; padding:3px 10px; border-radius:20px; margin:3px; display:inline-block; font-size:0.85em;">{s}</span>' for s in quick_profile.get("skills", [])[:12]])}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
                 else:
                     st.error("Não foi possível extrair texto deste PDF.")
             except Exception as e:
@@ -133,144 +142,164 @@ if analyze_btn:
     if not final_text or len(final_text) < 50:
         st.error("Por favor, cole o texto ou envie o PDF do seu currículo.")
     else:
-        with st.spinner(f"Analisando currículo com IA e buscando vagas em {country_name}..."):
-            try:
-                # Análise com Claude
-                analysis = analyze_resume(final_text)
-                profile = {
-                    "skills": get_skill_names(analysis),
-                    "total_skills": len(analysis.get("skills", [])),
-                    "seniority": analysis.get("seniority", "junior"),
-                    "strengths": analysis.get("strengths", []),
-                    "source": analysis.get("source", "fallback"),
-                }
+        try:
+            import time
+            progress_placeholder = st.empty()
 
-                # Busca vagas
-                jobs = get_jobs(
-                    candidate_skills=profile["skills"],
-                    limit=40,
-                    country=country_code,
-                    location=city.strip() if city else "",
-                )
+            def update_progress(msg: str, icon: str = "🔄"):
+                progress_placeholder.info(f"{icon} {msg}")
 
-                # Ranking semântico
-                results = rank_jobs(
-                    jobs=jobs,
-                    candidate_skills=profile["skills"],
-                    candidate_seniority=profile.get("seniority", seniority),
-                    limit=50,
-                    resume_text=final_text,
-                )
-                missing = get_top_missing_skills(results)
+            update_progress("Lendo seu currículo...", "🔍")
+            time.sleep(0.5)
+            update_progress("Claude está analisando seu perfil...", "🤖")
 
-                if remote_only:
-                    results = [r for r in results if r["job"].get("remote")]
-                results = [r for r in results if r["score"] >= min_score]
-                results = results[:limit]
+            # Análise com Claude
+            analysis = analyze_resume(final_text)
+            profile = {
+                "skills": get_skill_names(analysis),
+                "total_skills": len(analysis.get("skills", [])),
+                "seniority": analysis.get("seniority", "junior"),
+                "strengths": analysis.get("strengths", []),
+                "source": analysis.get("source", "fallback"),
+            }
 
-                st.success(f"✅ {profile['total_skills']} skills encontradas. Análise via {'Claude AI' if analysis.get('source') == 'claude' else 'parser básico'}.")
+            update_progress("Buscando vagas compatíveis no mundo...", "🌍")
+            jobs = get_jobs(
+                candidate_skills=profile["skills"],
+                limit=40,
+                country=country_code,
+                location=city.strip() if city else "",
+            )
 
-                # PERFIL
+            update_progress("Calculando compatibilidade semântica...", "📊")
+            results = rank_jobs(
+                jobs=jobs,
+                candidate_skills=profile["skills"],
+                candidate_seniority=profile.get("seniority", seniority),
+                limit=50,
+                resume_text=final_text,
+            )
+            missing = get_top_missing_skills(results)
+            progress_placeholder.empty()
+
+            if remote_only:
+                results = [r for r in results if r["job"].get("remote")]
+            results = [r for r in results if r["score"] >= min_score]
+            results = results[:limit]
+
+            st.success(f"✅ {profile['total_skills']} skills encontradas. Análise via {'Claude AI' if analysis.get('source') == 'claude' else 'parser básico'}.")
+
+            # PERFIL
+            st.markdown("---")
+            st.subheader("👤 Seu Perfil")
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("Skills encontradas", profile["total_skills"])
+            with col2:
+                st.metric("Nível detectado", profile["seniority"].upper())
+            with col3:
+                st.metric("Vagas analisadas", len(jobs))
+            with col4:
+                st.metric("Matches encontrados", len(results))
+
+            st.markdown("**🛠️ Skills identificadas:**")
+            st.markdown("  ".join([f"`{s}`" for s in profile["skills"]]))
+
+            if profile.get("strengths"):
+                st.markdown("**⭐ Pontos fortes:**")
+                st.markdown("  ".join([f"`{s}`" for s in profile["strengths"][:5]]))
+
+            # ANÁLISE CLAUDE
+            if analysis.get("source") == "claude":
                 st.markdown("---")
-                st.subheader("👤 Seu Perfil")
-                col1, col2, col3, col4 = st.columns(4)
+                complexity = analysis.get("project_complexity", "low")
+                complexity_color = {"low": "#ff4444", "medium": "#ffaa00", "high": "#44ff44"}.get(complexity, "#888")
+                complexity_label = {"low": "Baixa", "medium": "Média", "high": "Alta"}.get(complexity, complexity)
+
+                st.markdown(f"""
+                <div style="background: #1a1a2e; border-left: 4px solid #7c7cff; border-radius: 8px; padding: 20px; margin: 10px 0;">
+                    <h4 style="color:#7c7cff; margin:0 0 10px 0;">🤖 Análise do Claude</h4>
+                    <p style="color:#ddd; font-style:italic;">"{analysis.get('profile_summary', '')}"</p>
+                    <hr style="border-color:#333; margin: 12px 0;">
+                    <div style="display:flex; gap:20px; flex-wrap:wrap;">
+                        <span style="color:#aaa;">📊 Nível: <b style="color:#fff;">{analysis.get('seniority','').upper()}</b></span>
+                        <span style="color:#aaa;">⏱️ Experiência: <b style="color:#fff;">{analysis.get('experience_years', 0)} ano(s)</b></span>
+                        <span style="color:#aaa;">🎯 Complexidade: <b style="color:{complexity_color};">{complexity_label}</b></span>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                col1, col2 = st.columns(2)
                 with col1:
-                    st.metric("Skills encontradas", profile["total_skills"])
+                    if analysis.get("weaknesses"):
+                        st.markdown("**⚠️ Pontos a desenvolver:**")
+                        for w in analysis["weaknesses"][:3]:
+                            st.markdown(f"- {w}")
                 with col2:
-                    st.metric("Nível detectado", profile["seniority"].upper())
-                with col3:
-                    st.metric("Vagas analisadas", len(jobs))
-                with col4:
-                    st.metric("Matches encontrados", len(results))
+                    if analysis.get("red_flags"):
+                        st.markdown("**🚨 Red flags:**")
+                        for rf in analysis["red_flags"][:3]:
+                            st.markdown(f"- {rf}")
 
-                st.markdown("**🛠️ Skills identificadas:**")
-                st.markdown("  ".join([f"`{s}`" for s in profile["skills"]]))
-
-                if profile.get("strengths"):
-                    st.markdown("**⭐ Pontos fortes:**")
-                    st.markdown("  ".join([f"`{s}`" for s in profile["strengths"][:5]]))
-
-                # ANÁLISE CLAUDE
-                if analysis.get("source") == "claude":
-                    st.markdown("---")
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.markdown("**🔍 Análise do perfil:**")
-                        st.markdown(f"_{analysis.get('profile_summary', '')}_")
-                        if analysis.get("weaknesses"):
-                            st.markdown("**⚠️ Pontos a desenvolver:**")
-                            for w in analysis["weaknesses"][:3]:
-                                st.markdown(f"- {w}")
-                    with col2:
-                        if analysis.get("red_flags"):
-                            st.markdown("**🚨 Red flags identificados:**")
-                            for rf in analysis["red_flags"][:3]:
-                                st.markdown(f"- {rf}")
-                        complexity = analysis.get("project_complexity", "")
-                        if complexity:
-                            labels = {"low": "🔴 Baixa", "medium": "🟡 Média", "high": "🟢 Alta"}
-                            st.markdown(f"**Complexidade dos projetos:** {labels.get(complexity, complexity)}")
-                            st.markdown(f"_{analysis.get('project_complexity_reasoning', '')}_")
-
-                # SKILLS PARA APRENDER
-                if missing:
-                    st.markdown("---")
-                    st.subheader("📈 Skills para aprender")
-                    st.markdown("Baseado nas vagas que mais combinam com você:")
-                    for item in missing:
-                        skill_name = item['skill'].title()
-                        count = item['appears_in_top_jobs']
-                        resource = SKILL_RESOURCES.get(skill_name, "")
-                        col1, col2 = st.columns([4, 1])
-                        with col1:
-                            st.markdown(f"**{skill_name}** — aparece em **{count}** das suas top vagas")
-                        with col2:
-                            if resource:
-                                st.link_button("📚 Aprender", resource)
-
-                # VAGAS
+            # SKILLS PARA APRENDER
+            if missing:
                 st.markdown("---")
-                st.subheader(f"💼 Top {len(results)} vagas para você em {country_name}")
+                st.subheader("📈 Skills para aprender")
+                st.markdown("Baseado nas vagas que mais combinam com você:")
+                for item in missing:
+                    skill_name = item['skill'].title()
+                    count = item['appears_in_top_jobs']
+                    resource = SKILL_RESOURCES.get(skill_name, "")
+                    col1, col2 = st.columns([4, 1])
+                    with col1:
+                        st.markdown(f"**{skill_name}** — aparece em **{count}** das suas top vagas")
+                    with col2:
+                        if resource:
+                            st.link_button("📚 Aprender", resource)
 
-                if not results:
-                    st.warning("Nenhuma vaga encontrada. Tente reduzir o score mínimo ou mudar os filtros.")
-                else:
-                    for i, result in enumerate(results):
-                        job = result["job"]
-                        score = result["score"]
-                        source = job.get("source", "mock")
-                        job_country = job.get("country", country_code)
-                        color = "🟢" if score >= 0.7 else "🟡" if score >= 0.5 else "🔴"
+            # VAGAS
+            st.markdown("---")
+            st.subheader(f"💼 Top {len(results)} vagas para você em {country_name}")
 
-                        with st.expander(
-                            f"{color} {job['title']} — {job['company']} | {result['score_percent']}",
-                            expanded=(i < 3)
-                        ):
-                            col1, col2, col3 = st.columns(3)
-                            with col1:
-                                st.metric("Match", result["score_percent"])
-                            with col2:
-                                salary_str = format_salary(
-                                    job.get("salary_min", 0),
-                                    job.get("salary_max", 0),
-                                    job_country,
-                                    source,
-                                )
-                                st.markdown("**Salário**")
-                                st.markdown(f"### {salary_str}")
-                            with col3:
-                                st.metric("Modalidade", "🌐 Remoto" if job.get("remote") else "🏢 Presencial")
+            if not results:
+                st.warning("Nenhuma vaga encontrada. Tente reduzir o score mínimo ou mudar os filtros.")
+            else:
+                for i, result in enumerate(results):
+                    job = result["job"]
+                    score = result["score"]
+                    source = job.get("source", "mock")
+                    job_country = job.get("country", country_code)
+                    color = "🟢" if score >= 0.7 else "🟡" if score >= 0.5 else "🔴"
 
-                            st.markdown(f"📍 **{job.get('location', 'N/A')}** | 👤 **{job.get('seniority', 'N/A').upper()}** | 🏢 {source.upper()}")
-                            st.markdown(f"*{result['reason']}*")
+                    with st.expander(
+                        f"{color} {job['title']} — {job['company']} | {result['score_percent']}",
+                        expanded=(i < 3)
+                    ):
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric("Match", result["score_percent"])
+                        with col2:
+                            salary_str = format_salary(
+                                job.get("salary_min", 0),
+                                job.get("salary_max", 0),
+                                job_country,
+                                source,
+                            )
+                            st.markdown("**Salário**")
+                            st.markdown(f"### {salary_str}")
+                        with col3:
+                            st.metric("Modalidade", "🌐 Remoto" if job.get("remote") else "🏢 Presencial")
 
-                            if result["matched_skills"]:
-                                st.markdown("**✅ Você tem:** " + "  ".join([f"`{s}`" for s in result["matched_skills"]]))
-                            if result["missing_skills"]:
-                                st.markdown("**❌ Faltam:** " + "  ".join([f"`{s}`" for s in result["missing_skills"]]))
-                            if job.get("url"):
-                                st.link_button("🔗 Ver vaga completa", job["url"])
+                        st.markdown(f"📍 **{job.get('location', 'N/A')}** | 👤 **{job.get('seniority', 'N/A').upper()}** | 🏢 {source.upper()}")
+                        st.markdown(f"*{result['reason']}*")
 
-            except Exception as e:
-                st.error(f"Erro inesperado: {str(e)}")
-                st.exception(e)
+                        if result["matched_skills"]:
+                            st.markdown("**✅ Você tem:** " + "  ".join([f"`{s}`" for s in result["matched_skills"]]))
+                        if result["missing_skills"]:
+                            st.markdown("**❌ Faltam:** " + "  ".join([f"`{s}`" for s in result["missing_skills"]]))
+                        if job.get("url"):
+                            st.link_button("🔗 Ver vaga completa", job["url"])
+
+        except Exception as e:
+            st.error(f"Erro inesperado: {str(e)}")
+            st.exception(e)
