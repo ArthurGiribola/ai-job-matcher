@@ -133,6 +133,54 @@ def get_skill_levels(analysis: dict) -> dict[str, str]:
     return {s["name"]: s["level"] for s in analysis.get("skills", [])}
 
 
+def generate_cover_letter(
+    analysis: dict,
+    job: dict,
+) -> str:
+    """
+    Gera cover letter personalizado em português
+    baseado no perfil do candidato e na vaga.
+    """
+    try:
+        client = _get_client()
+        prompt = f"""Você é um especialista em recrutamento e redação profissional.
+
+Gere um cover letter profissional em português para esta candidatura.
+
+Perfil do candidato:
+- Nome: {analysis.get('name', 'Candidato')}
+- Nível: {analysis.get('seniority', 'junior')}
+- Experiência: {analysis.get('experience_years', 0)} anos
+- Skills principais: {[s['name'] for s in analysis.get('skills', [])[:8]]}
+- Pontos fortes: {analysis.get('strengths', [])[:3]}
+- Resumo: {analysis.get('profile_summary', '')}
+
+Vaga:
+- Cargo: {job.get('title')}
+- Empresa: {job.get('company')}
+- Skills exigidas: {job.get('skills_required', [])[:8]}
+- Nível: {job.get('seniority')}
+
+Regras:
+- Máximo 3 parágrafos curtos
+- Tom profissional mas humano
+- Menciona skills que o candidato TEM e a vaga PEDE
+- Não inventa experiências que não existem
+- Termina com call to action
+- Escreve em português do Brasil
+- NÃO inclui data, endereço ou cabeçalho formal"""
+
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=500,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return message.content[0].text.strip()
+    except Exception as e:
+        print(f"Cover letter failed: {e}")
+        return ""
+
+
 def generate_job_explanation(
     analysis: dict,
     job: dict,

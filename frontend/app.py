@@ -6,7 +6,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.services.resume_parser import extract_text_from_pdf
-from app.services.resume_analyzer import analyze_resume, get_skill_names, generate_job_explanation
+from app.services.resume_analyzer import analyze_resume, get_skill_names, generate_job_explanation, generate_cover_letter
 from app.services.job_collector import get_jobs, SUPPORTED_COUNTRIES
 from app.services.scoring_engine import rank_jobs, get_top_missing_skills
 
@@ -335,6 +335,22 @@ if analyze_btn:
                             st.link_button("🔗 Ver vaga completa", job["url"])
                         elif job.get("source") == "mock":
                             st.caption("🔒 Vaga demonstrativa — sem link disponível")
+
+                        if st.button(f"✉️ Gerar Cover Letter", key=f"cover_{i}"):
+                            with st.spinner("✍️ Claude escrevendo seu cover letter..."):
+                                cover = generate_cover_letter(analysis, job)
+                            if cover:
+                                st.markdown("---")
+                                st.markdown("**✉️ Cover Letter gerado pelo Claude:**")
+                                st.text_area(
+                                    label="",
+                                    value=cover,
+                                    height=300,
+                                    key=f"cover_text_{i}",
+                                )
+                                st.caption("📋 Selecione o texto acima e copie — personalize antes de enviar!")
+                            else:
+                                st.warning("Não foi possível gerar o cover letter. Tente novamente.")
 
         except Exception as e:
             st.error(f"Erro inesperado: {str(e)}")
