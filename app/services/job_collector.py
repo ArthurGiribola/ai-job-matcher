@@ -14,6 +14,29 @@ ADZUNA_BASE_URL = "https://api.adzuna.com/v1/api/jobs"
 MOCK_PATH = Path(__file__).parent.parent.parent / "data" / "mock_jobs.json"
 CACHE_PATH = Path(__file__).parent.parent.parent / "data" / "jobs_cache.json"
 
+SUPPORTED_COUNTRIES = {
+    "gb": "Reino Unido",
+    "us": "Estados Unidos",
+    "au": "Austrália",
+    "ca": "Canadá",
+    "de": "Alemanha",
+    "fr": "França",
+    "nl": "Países Baixos",
+    "sg": "Singapura",
+    "nz": "Nova Zelândia",
+    "za": "África do Sul",
+    "in": "Índia",
+    "at": "Áustria",
+    "be": "Bélgica",
+    "br": "Brasil",
+    "mx": "México",
+    "it": "Itália",
+    "es": "Espanha",
+    "pl": "Polônia",
+    "ru": "Rússia",
+    "ch": "Suíça",
+}
+
 SKILL_KEYWORDS = [
     "Python", "Java", "JavaScript", "TypeScript", "React", "Vue", "Angular",
     "FastAPI", "Django", "Flask", "Node.js", "Docker", "Kubernetes", "AWS",
@@ -27,13 +50,11 @@ SKILL_KEYWORDS = [
 
 
 def extract_skills_from_text(text: str) -> list[str]:
-    """Extrai skills de um texto usando lista de palavras-chave."""
     text_lower = text.lower()
     return [s for s in SKILL_KEYWORDS if s.lower() in text_lower]
 
 
 def detect_seniority(title: str) -> str:
-    """Detecta senioridade pelo título da vaga."""
     title_lower = title.lower()
     if any(w in title_lower for w in ["senior", "sr.", "lead", "principal", "staff"]):
         return "senior"
@@ -44,8 +65,7 @@ def detect_seniority(title: str) -> str:
     return "mid"
 
 
-def normalize_job(raw: dict) -> dict:
-    """Converte vaga da Adzuna para o schema padrão do sistema."""
+def normalize_job(raw: dict, country_code: str = "gb") -> dict:
     title = raw.get("title", "").strip()
     description = raw.get("description", "").strip()
     company = raw.get("company", {}).get("display_name", "Company")
@@ -53,17 +73,12 @@ def normalize_job(raw: dict) -> dict:
     url = raw.get("redirect_url", "")
     salary_min = int(raw.get("salary_min") or 0)
     salary_max = int(raw.get("salary_max") or 0)
-
     text = f"{title} {description}".lower()
     is_remote = any(w in text for w in ["remote", "remoto", "home office", "anywhere", "hybrid"])
-
     try:
-        posted_at = datetime.fromisoformat(
-            raw.get("created", "")[:10]
-        ).strftime("%Y-%m-%d")
+        posted_at = datetime.fromisoformat(raw.get("created", "")[:10]).strftime("%Y-%m-%d")
     except Exception:
         posted_at = datetime.today().strftime("%Y-%m-%d")
-
     return {
         "id": f"adzuna_{raw.get('id', '')}",
         "title": title,
@@ -78,74 +93,72 @@ def normalize_job(raw: dict) -> dict:
         "url": url,
         "salary_min": salary_min,
         "salary_max": salary_max,
+        "country": country_code,
     }
 
 
 def fetch_adzuna_jobs(
     keywords: str = "python developer",
-    location: str = "london",
+    location: str = "",
     results_per_page: int = 20,
     page: int = 1,
+    country_code: str = "gb",
 ) -> list[dict]:
-    """
-    Busca vagas reais da Adzuna API (país GB — maior base de dados).
-    Retorna lista normalizada no schema padrão.
-    """
     if not ADZUNA_APP_ID or not ADZUNA_APP_KEY:
         print("Credenciais Adzuna não encontradas.")
         return []
 
-    url = f"{ADZUNA_BASE_URL}/gb/search/{page}"
+    if country_code not in SUPPORTED_COUNTRIES:
+        country_code = "gb"
+
+    url = f"{ADZUNA_BASE_URL}/{country_code}/search/{page}"
     params = {
         "app_id": ADZUNA_APP_ID,
         "app_key": ADZUNA_APP_KEY,
         "results_per_page": results_per_page,
         "what": keywords,
-        "where": location,
         "content-type": "application/json",
         "sort_by": "date",
     }
+    if location:
+        params["where"] = location
 
     try:
         response = requests.get(url, params=params, timeout=10)
         response.raise_for_status()
         results = response.json().get("results", [])
-        jobs = [normalize_job(r) for r in results]
-        print(f"Adzuna: {len(jobs)} vagas encontradas.")
+        jobs = [normalize_job(r, country_code) for r in results]
+        print(f"Adzuna [{country_code}]: {len(jobs)} vagas encontradas.")
         return jobs
     except requests.exceptions.RequestException as e:
         print(f"Erro Adzuna: {e}")
         return []
-    
+
+
 def get_jobs(
     candidate_skills: list[str] = None,
     limit: int = 20,
     country: str = "gb",
     location: str = "",
 ) -> list[dict]:
-    """
-    Retorna vagas combinando Adzuna + mock jobs.
-    Adzuna primeiro, mock como fallback/complemento.
-    """
     if candidate_skills:
         query = " ".join(candidate_skills[:3])
     else:
         query = "python developer"
 
-    where = location if location else country
     real_jobs = fetch_adzuna_jobs(
         keywords=query,
-        location=where,
+        location=location,
         results_per_page=limit,
+        country_code=country,
     )
 
     mock_jobs = []
-    if MOCK_PATH.exists():
+    if country == "br" and MOCK_PATH.exists():
         with open(MOCK_PATH, "r", encoding="utf-8") as f:
             mock_jobs = json.load(f)
 
     all_jobs = real_jobs + mock_jobs
-
     seen = set()
     unique = []
     for job in all_jobs:
