@@ -313,8 +313,10 @@ if analyze_btn:
                         color = "#44ff44" if hiring_pct >= 60 else "#ffaa00" if hiring_pct >= 40 else "#ff4444"
                         st.markdown(f'<p style="color:{color}; font-size:0.9em;">🎯 Probabilidade de chamada: <b>{hiring_pct}%</b></p>', unsafe_allow_html=True)
 
-                        if job.get("url"):
+                        if job.get("url") and job.get("url").startswith("http") and job.get("source") != "mock":
                             st.link_button("🔗 Ver vaga completa", job["url"])
+                        elif job.get("source") == "mock":
+                            st.caption("🔒 Vaga demonstrativa — sem link disponível")
 
         except Exception as e:
             st.error(f"Erro inesperado: {str(e)}")
