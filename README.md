@@ -1,24 +1,23 @@
 # 🎯 AI Job Matcher
 
-> AI-powered system that analyzes resumes, matches candidates with real job opportunities, and identifies skill gaps — built with Python, FastAPI, NLP, and Streamlit.
-
----
+AI-powered system that analyzes resumes with Claude AI, matches candidates with real job opportunities using semantic embeddings, and identifies skill gaps — built with Python, FastAPI, Claude Haiku, sentence-transformers and Streamlit.
 
 ## 🚀 Live Demo
+**[ai-job-matcher-fwyk2y7xr5aedyhsckxjuw.streamlit.app](https://ai-job-matcher-fwyk2y7xr5aedyhsckxjuw.streamlit.app)**
 
-> Upload your resume (PDF or text) → Get ranked job matches with compatibility scores → See exactly what skills you're missing
+Upload your resume (PDF or text) → Claude AI extracts your profile → Get semantically ranked job matches → See exactly what skills you're missing
 
 ---
 
 ## 🧠 What it does
 
-Most job platforms show you jobs. This system tells you **why** you match or don't — and what to do about it.
+Most job platforms show you jobs. This system tells you **why you match or don't** — and what to do about it.
 
-- 📄 **Resume Analysis** — Upload PDF or paste text, extracts 18+ skills automatically
-- 🎯 **Job Matching** — Ranks jobs by real compatibility score (not keyword stuffing)
-- 📊 **Skill Gap Detection** — Shows exactly what's missing for your top matches
-- ⭐ **Strengths Highlight** — Identifies your high-value skills (AWS, ML, Docker, etc.)
-- 🔗 **Direct Apply Links** — One click to apply on Gupy or LinkedIn
+- 📄 **Resume Analysis** — Claude Haiku extracts skills with proficiency levels, seniority, red flags and project complexity
+- 🎯 **Semantic Matching** — Ranks jobs using sentence-transformers embeddings (not keyword stuffing)
+- 📊 **Skill Gap Detection** — Shows exactly what's missing for your top matches with learning resources
+- 🌍 **Global Job Search** — Real jobs from Adzuna API across 20+ countries
+- 🤖 **AI Profile Card** — Visual profile card with Claude's honest assessment of your experience level
 
 ---
 
@@ -28,11 +27,11 @@ The match score is calculated across 5 dimensions:
 
 | Dimension | Weight | Description |
 |-----------|--------|-------------|
-| Skills compatibility | 40% | Jaccard similarity between resume and job skills |
+| Semantic similarity | 40% | Cosine similarity between resume and job embeddings (all-MiniLM-L6-v2) |
 | Seniority match | 20% | Penalizes over/under-qualified matches |
 | Job recency | 15% | Exponential decay for older postings |
 | Filter adherence | 15% | Remote, location, salary preferences |
-| High-value skill bonus | 10% | AWS, ML, Docker, LLM, etc. |
+| High-value skill bonus | 10% | AWS, ML, Docker, LLM, Kubernetes, etc. |
 
 ---
 
@@ -40,30 +39,27 @@ The match score is calculated across 5 dimensions:
 ```
 User (PDF/Text)
       ↓
-Streamlit Frontend (port 8501)
+Streamlit Frontend
       ↓
-FastAPI Backend (port 8000)
+┌─────────────────────────────────────┐
+│  ResumeAnalyzer (Claude Haiku)      │  ← Structured extraction
+│  Embedder (sentence-transformers)   │  ← Semantic vectors
+│  JobCollector (Adzuna API)          │  ← Real global jobs
+│  ScoringEngine (cosine similarity)  │  ← Weighted ranking
+└─────────────────────────────────────┘
       ↓
-┌─────────────────────────────┐
-│  ResumeParserService        │  ← pdfminer.six + spaCy
-│  SkillExtractorService      │  ← Custom dictionary (300+ skills)
-│  ScoringEngine              │  ← Weighted scoring algorithm
-└─────────────────────────────┘
-      ↓
-JSON Response with ranked jobs + gaps
+Ranked jobs + skill gaps + learning resources
 ```
 
 ---
 
 ## ⚙️ Tech Stack
 
-**Backend:** Python 3.11+, FastAPI, Pydantic, Uvicorn
-
-**NLP & AI:** spaCy, pdfminer.six, Custom skill dictionary
-
-**Frontend:** Streamlit
-
-**Data:** JSON mock jobs (Gupy/LinkedIn format) → Real API integration coming
+- **Backend:** Python 3.11+, FastAPI, Pydantic, Uvicorn
+- **AI Layer:** Claude Haiku (Anthropic), sentence-transformers (all-MiniLM-L6-v2)
+- **Job Data:** Adzuna API (20+ countries)
+- **Frontend:** Streamlit
+- **Deploy:** Streamlit Cloud
 
 ---
 
@@ -76,38 +72,23 @@ cd ai-job-matcher
 # 2. Create virtual environment
 python -m venv venv
 venv\Scripts\activate  # Windows
-# source venv/bin/activate  # Mac/Linux
+source venv/bin/activate  # Mac/Linux
 
 # 3. Install dependencies
 pip install -r requirements.txt
 
-# 4. Download spaCy model
-python -m spacy download en_core_web_sm
+# 4. Configure environment variables
+cp .streamlit/secrets.toml.example .streamlit/secrets.toml
+# Edit .streamlit/secrets.toml and add your keys:
+# ANTHROPIC_API_KEY = "sk-ant-..."
+# ADZUNA_APP_ID = "your_id"
+# ADZUNA_APP_KEY = "your_key"
 
-# 5. Start the API
-uvicorn app.main:app --reload
-
-# 6. Start the interface (new terminal)
-python -m streamlit run frontend/app.py
+# 5. Start the interface
+streamlit run frontend/app.py
 ```
 
 Open `http://localhost:8501` and upload your resume.
-
----
-
-## 📡 API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/` | Health check |
-| GET | `/jobs` | List all available jobs |
-| POST | `/match` | Match skills against jobs |
-| POST | `/match/quick` | Quick match with skill list |
-| POST | `/resume/analyze-text` | Analyze resume text |
-| POST | `/resume/upload` | Upload and analyze PDF |
-| POST | `/resume/analyze-and-match` | Full pipeline in one call |
-
-Full docs available at `http://localhost:8000/docs`
 
 ---
 
@@ -115,15 +96,21 @@ Full docs available at `http://localhost:8000/docs`
 ```
 ai-job-matcher/
 ├── app/
-│   ├── main.py                 # FastAPI app + endpoints
+│   ├── main.py                    # FastAPI app + endpoints
 │   └── services/
-│       ├── scoring_engine.py   # Match scoring algorithm
-│       └── resume_parser.py    # PDF parser + skill extractor
+│       ├── embedder.py            # sentence-transformers embeddings
+│       ├── resume_analyzer.py     # Claude Haiku structured extraction
+│       ├── resume_parser.py       # PDF parser + basic skill extractor
+│       ├── job_collector.py       # Adzuna API integration
+│       └── scoring_engine.py      # Semantic scoring algorithm
 ├── data/
-│   └── mock_jobs.json          # 20 real Brazilian tech jobs
+│   └── mock_jobs.json             # Brazilian mock jobs fallback
 ├── frontend/
-│   └── app.py                  # Streamlit interface
-├── requirements.txt
+│   └── app.py                     # Streamlit interface
+├── tests/                         # 23 passing tests
+├── .streamlit/
+│   └── secrets.toml.example       # Environment variables template
+├── CLAUDE.md                      # Project context for Claude Code
 └── README.md
 ```
 
@@ -131,16 +118,18 @@ ai-job-matcher/
 
 ## 🗺️ Roadmap
 
-- [x] Resume parser (PDF + text)
-- [x] Skill extraction with NLP
-- [x] Scoring engine with 5 dimensions
-- [x] REST API with FastAPI
-- [x] Visual interface with Streamlit
-- [x] PDF upload directly in UI
-- [ ] Real job API integration (Gupy, Adzuna)
-- [ ] Deploy on cloud (Railway + Streamlit Cloud)
-- [ ] Resume rewrite suggestions per job
-- [ ] Career evolution dashboard
+- ✅ Resume parser (PDF + text)
+- ✅ Claude AI structured extraction (skills, seniority, red flags)
+- ✅ Semantic embeddings matching
+- ✅ Scoring engine with 5 dimensions
+- ✅ REST API with FastAPI
+- ✅ Streamlit UI with visual profile card
+- ✅ Real job API integration (Adzuna — 20+ countries)
+- ✅ Deploy on Streamlit Cloud
+- ⏳ Hiring probability prediction (Phase 3)
+- ⏳ Explanation engine ("why you're not getting callbacks")
+- ⏳ Persistent cache (Redis)
+- ⏳ Career evolution dashboard
 
 ---
 
