@@ -70,6 +70,8 @@ COUNTRY_OPTIONS = {name: code for code, name in SUPPORTED_COUNTRIES.items()}
 def format_salary(salary_min, salary_max, country_code, source):
     if source in ["gupy", "mock", "linkedin"] or country_code == "br":
         currency = "R$"
+    elif source == "remotive":
+        currency = "$"
     else:
         currency = CURRENCY_BY_COUNTRY.get(country_code, "£")
     if not salary_min and not salary_max:

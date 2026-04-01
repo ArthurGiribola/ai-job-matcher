@@ -185,6 +185,52 @@ def fetch_adzuna_jobs(
         return []
 
 
+def fetch_remotive_jobs(
+    keywords: str = "python",
+    limit: int = 10,
+) -> list[dict]:
+    """
+    Busca vagas remotas globais na Remotive API.
+    Gratuita, sem autenticação necessária.
+    """
+    try:
+        url = "https://remotive.com/api/remote-jobs"
+        params = {"search": keywords, "limit": limit}
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        jobs_raw = response.json().get("jobs", [])
+
+        normalized = []
+        for job in jobs_raw:
+            title = job.get("title", "").strip()
+            description = job.get("description", "").strip()
+            company = job.get("company_name", "Company")
+            url_job = job.get("url", "")
+
+            normalized.append({
+                "id": f"remotive_{job.get('id', '')}",
+                "title": title,
+                "company": company,
+                "location": "Remote",
+                "remote": True,
+                "seniority": detect_seniority(title),
+                "skills_required": extract_skills_from_text(f"{title} {description}"),
+                "description": description[:2000],
+                "posted_at": job.get("publication_date", datetime.today().strftime("%Y-%m-%d"))[:10],
+                "source": "remotive",
+                "url": url_job,
+                "salary_min": 0,
+                "salary_max": 0,
+                "country": "remote",
+            })
+
+        print(f"Remotive: {len(normalized)} vagas encontradas.")
+        return normalized
+    except Exception as e:
+        print(f"Erro Remotive: {e}")
+        return []
+
+
 def get_jobs(
     candidate_skills: list[str] = None,
     limit: int = 20,
@@ -211,12 +257,17 @@ def get_jobs(
             country_code=country,
         )
 
+    remotive_jobs = fetch_remotive_jobs(
+        keywords=query,
+        limit=10,
+    )
+
     mock_jobs = []
     if country == "br" and MOCK_PATH.exists():
         with open(MOCK_PATH, "r", encoding="utf-8") as f:
             mock_jobs = json.load(f)
 
-    all_jobs = real_jobs + mock_jobs
+    all_jobs = real_jobs + remotive_jobs + mock_jobs
     seen = set()
     unique = []
     for job in all_jobs:
