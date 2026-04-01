@@ -68,7 +68,7 @@ COUNTRY_OPTIONS = {name: code for code, name in SUPPORTED_COUNTRIES.items()}
 
 
 def format_salary(salary_min, salary_max, country_code, source):
-    if source in ["gupy", "mock"]:
+    if source in ["gupy", "mock", "linkedin"] or country_code == "br":
         currency = "R$"
     else:
         currency = CURRENCY_BY_COUNTRY.get(country_code, "£")
@@ -255,7 +255,7 @@ if analyze_btn:
                 st.markdown("---")
                 st.subheader("📈 Skills para aprender")
                 st.markdown("Baseado nas vagas que mais combinam com você:")
-                SKIP_SKILLS = {"oop", "agile", "scrum", "communication", "teamwork", "problem solving"}
+                SKIP_SKILLS = {"oop", "agile", "scrum", "communication", "teamwork", "problem solving", "neural networks"}
                 for item in missing:
                     skill_name = item['skill'].title()
                     if item['skill'].lower() in SKIP_SKILLS:
