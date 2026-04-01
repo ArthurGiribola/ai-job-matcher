@@ -1,23 +1,5 @@
 [
   {
-    "id": "adzuna_5684798028",
-    "title": "Python Developer",
-    "company": "Apex Systems US",
-    "location": "Bow, East London",
-    "remote": false,
-    "seniority": "mid",
-    "skills_required": [
-      "Python",
-      "SQL"
-    ],
-    "description": "Salary: £62,000 - 102,000 per year Requirements: 7 years of technology development experience 3 years of experience in development of front-office equities derivatives systems Computer science or equivalent degree Demonstrable experience in designing and developing complex server-side functionality in Python SQL proficiency, preferably Oracle Shell scripting and basic Unix knowledge desirable Proficient in writing unit, integration, and acceptance tests Comfortable in an agile working environme…",
-    "posted_at": "2026-04-01",
-    "source": "adzuna",
-    "url": "https://www.adzuna.co.uk/jobs/details/5684798028?utm_medium=api&utm_source=4ed8b5a0",
-    "salary_min": 62000,
-    "salary_max": 102000
-  },
-  {
     "id": "adzuna_5684798040",
     "title": "Python Developer",
     "company": "Vermillion Analytics",
@@ -34,6 +16,24 @@
     "url": "https://www.adzuna.co.uk/jobs/details/5684798040?utm_medium=api&utm_source=4ed8b5a0",
     "salary_min": 50000,
     "salary_max": 65000
+  },
+  {
+    "id": "adzuna_5684798028",
+    "title": "Python Developer",
+    "company": "Apex Systems US",
+    "location": "Bow, East London",
+    "remote": false,
+    "seniority": "mid",
+    "skills_required": [
+      "Python",
+      "SQL"
+    ],
+    "description": "Salary: £62,000 - 102,000 per year Requirements: 7 years of technology development experience 3 years of experience in development of front-office equities derivatives systems Computer science or equivalent degree Demonstrable experience in designing and developing complex server-side functionality in Python SQL proficiency, preferably Oracle Shell scripting and basic Unix knowledge desirable Proficient in writing unit, integration, and acceptance tests Comfortable in an agile working environme…",
+    "posted_at": "2026-04-01",
+    "source": "adzuna",
+    "url": "https://www.adzuna.co.uk/jobs/details/5684798028?utm_medium=api&utm_source=4ed8b5a0",
+    "salary_min": 62000,
+    "salary_max": 102000
   },
   {
     "id": "adzuna_5684797835",
@@ -483,7 +483,7 @@
     "description": "dunnhumby is the global leader in Customer Data Science, partnering with the world's most ambitious retailers and brands to put the customer at the heart of every decision. We combine deep insight, advanced technology, and close collaboration to help our clients grow, innovate, and deliver measurable value for their customers. dunnhumby employs nearly 2,500 experts in offices throughout Europe, Asia, Africa, and the Americas working for transformative, iconic brands such as Tesco, Coca-Cola, Ne…",
     "posted_at": "2026-03-31",
     "source": "adzuna",
-    "url": "https://www.adzuna.co.uk/jobs/land/ad/5684541019?se=FvQG9Xkt8RG7UsIwzYP5qg&utm_medium=api&utm_source=4ed8b5a0&v=A81A2521D0455D4D88F72B7886E8C1A29636A3E3",
+    "url": "https://www.adzuna.co.uk/jobs/land/ad/5684541019?se=MKcg6Xst8RG7UsIwzYP5qg&utm_medium=api&utm_source=4ed8b5a0&v=A81A2521D0455D4D88F72B7886E8C1A29636A3E3",
     "salary_min": 54018,
     "salary_max": 54018
   },
@@ -501,7 +501,7 @@
     "description": "Senior Full-stack Python Typescript AI Engineer- Outside IR35 ROLE This position is for a Senior Backend Developer working in python and typescript to support the development on a SaaS product with a focus on Ai. This role involves designing, building, and optimising scalable backend services and APIs to support a single-tenant, multi‑instance SaaS platform, while contributing to the architecture and implementation of AI‑driven components such as Retrieval‑Augmented Generation (RAG) pipelines, …",
     "posted_at": "2026-03-31",
     "source": "adzuna",
-    "url": "https://www.adzuna.co.uk/jobs/land/ad/5684482671?se=FvQG9Xkt8RG7UsIwzYP5qg&utm_medium=api&utm_source=4ed8b5a0&v=BC10DBE3DC1AB75246C3D098AD2498F0A9287426",
+    "url": "https://www.adzuna.co.uk/jobs/land/ad/5684482671?se=MKcg6Xst8RG7UsIwzYP5qg&utm_medium=api&utm_source=4ed8b5a0&v=BC10DBE3DC1AB75246C3D098AD2498F0A9287426",
     "salary_min": 89452,
     "salary_max": 89452
   },
@@ -534,7 +534,7 @@
     "description": "Python Engineer – SC Cleared Ncounter is supporting a high-impact Defence programme seeking a Python Engineer to build and deliver secure, data-driven software solutions. This role combines strong backend engineering with data integration, with a clear focus on Python development in Linux environments. You will work closely with stakeholders across engineering, data and operational teams, helping deliver scalable systems that support critical national infrastructure. This is a hands-on engineer…",
     "posted_at": "2026-03-31",
     "source": "adzuna",
-    "url": "https://www.adzuna.co.uk/jobs/land/ad/5684281598?se=FvQG9Xkt8RG7UsIwzYP5qg&utm_medium=api&utm_source=4ed8b5a0&v=D844F59027A2CF51B6873AA7F8BDF0EB74C93819",
+    "url": "https://www.adzuna.co.uk/jobs/land/ad/5684281598?se=MKcg6Xst8RG7UsIwzYP5qg&utm_medium=api&utm_source=4ed8b5a0&v=D844F59027A2CF51B6873AA7F8BDF0EB74C93819",
     "salary_min": 70000,
     "salary_max": 90000
   },
@@ -552,7 +552,7 @@
     "description": "AWS AI Engineers with strong expertise in AWS cloud services and AWS AI agent-based automation to deliver end‑to‑end automations using AWS-native tooling, low-code platforms, and full-code engineering across enterprise systems. Key Responsibilities Develop autonomous agents using AWS Q , AgentCore , LangChain , LangGraph , CrewAI , or AutoGen for reasoning, orchestration, and tool-use. Build intelligent document processing workflows leveraging AWS Textract , Comprehend , and extraction pipeline…",
     "posted_at": "2026-03-31",
     "source": "adzuna",
-    "url": "https://www.adzuna.co.uk/jobs/land/ad/5684267880?se=FvQG9Xkt8RG7UsIwzYP5qg&utm_medium=api&utm_source=4ed8b5a0&v=C7FF881E22618620D07327CB421EA2BBBD688509",
+    "url": "https://www.adzuna.co.uk/jobs/land/ad/5684267880?se=MKcg6Xst8RG7UsIwzYP5qg&utm_medium=api&utm_source=4ed8b5a0&v=C7FF881E22618620D07327CB421EA2BBBD688509",
     "salary_min": 62165,
     "salary_max": 62165
   },
@@ -567,7 +567,7 @@
     "description": "Lead Data Scientist, AI/ML About Cognizant Consulting Cognizant Consulting is a global community of experts dedicated to helping clients reimagine their business - blending deep industry and technology advisory capability to create innovative solutions for Fortune 500 clients. And now, we’re looking for our next colleague who’ll join us in shaping the future of business. Could it be you? About the role As a Lead Data Scientist, AI/ML, you will design, build, and operationalise modern analytics …",
     "posted_at": "2026-03-31",
     "source": "adzuna",
-    "url": "https://www.adzuna.co.uk/jobs/land/ad/5684267915?se=FvQG9Xkt8RG7UsIwzYP5qg&utm_medium=api&utm_source=4ed8b5a0&v=87A87B3679153E2E1BF40997469E7664CF586EEE",
+    "url": "https://www.adzuna.co.uk/jobs/land/ad/5684267915?se=MKcg6Xst8RG7UsIwzYP5qg&utm_medium=api&utm_source=4ed8b5a0&v=87A87B3679153E2E1BF40997469E7664CF586EEE",
     "salary_min": 70336,
     "salary_max": 70336
   },
@@ -584,7 +584,7 @@
     "description": "Hybrid working model – remote and on-site as required Overview Ministry of Justice is seeking an experienced Senior Technical Architect to support Legal Aid Agency on a temporary consultancy engagement. The role provides architectural leadership across digital services that enable both citizens and legal professionals to access and manage legal aid services. You will work within multidisciplinary delivery teams and act as a senior technical partner, shaping architectural strategy, informing key…",
     "posted_at": "2026-03-31",
     "source": "adzuna",
-    "url": "https://www.adzuna.co.uk/jobs/land/ad/5684267902?se=FvQG9Xkt8RG7UsIwzYP5qg&utm_medium=api&utm_source=4ed8b5a0&v=1FC8C8D12072796D202F20AD38F690490A46A0E5",
+    "url": "https://www.adzuna.co.uk/jobs/land/ad/5684267902?se=MKcg6Xst8RG7UsIwzYP5qg&utm_medium=api&utm_source=4ed8b5a0&v=1FC8C8D12072796D202F20AD38F690490A46A0E5",
     "salary_min": 74776,
     "salary_max": 74776
   },
@@ -659,7 +659,7 @@
     "description": "Due to progression, this role exists to replace a senior engineer within a well-established software company operating in the highly regulated energy sector. Senior Python Software Engineer Circa £56,000  up to 15% bonus | Hybrid (2 days per week in Oxford) The software you'll work on is business critical. It must be reliable, auditable, and able to stand up to regulatory scrutiny. That shapes how engineering is done here: considered design, well-tested code, and a focus on doing things properl…",
     "posted_at": "2026-03-31",
     "source": "adzuna",
-    "url": "https://www.adzuna.co.uk/jobs/land/ad/5684129596?se=FvQG9Xkt8RG7UsIwzYP5qg&utm_medium=api&utm_source=4ed8b5a0&v=FFAC8DAE383AEB30629E644F55A4DE3B6F1E2176",
+    "url": "https://www.adzuna.co.uk/jobs/land/ad/5684129596?se=MKcg6Xst8RG7UsIwzYP5qg&utm_medium=api&utm_source=4ed8b5a0&v=FFAC8DAE383AEB30629E644F55A4DE3B6F1E2176",
     "salary_min": 60000,
     "salary_max": 60000
   },
@@ -710,7 +710,7 @@
     "description": "Are you a Python Developer who loves turning data into business impact? Handle are currently working with a market leading publishing business who are looking for a Senior Python Engineer to join their Growth & Analytics team. You'll be working hands-on with Python, APIs, databases, and large datasets to help build the next generation of internal tools that power marketing, analytics, and commercial strategy. Key responsibilities - Build and maintain Python-based systems and tools that drive re…",
     "posted_at": "2026-03-30",
     "source": "adzuna",
-    "url": "https://www.adzuna.co.uk/jobs/land/ad/5683636807?se=FvQG9Xkt8RG7UsIwzYP5qg&utm_medium=api&utm_source=4ed8b5a0&v=D135AAF9A565B777646C406A95AFFCA030C7ADCB",
+    "url": "https://www.adzuna.co.uk/jobs/land/ad/5683636807?se=MKcg6Xst8RG7UsIwzYP5qg&utm_medium=api&utm_source=4ed8b5a0&v=D135AAF9A565B777646C406A95AFFCA030C7ADCB",
     "salary_min": 70000,
     "salary_max": 75000
   },
