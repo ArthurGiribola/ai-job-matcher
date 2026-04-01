@@ -336,21 +336,25 @@ if analyze_btn:
                         elif job.get("source") == "mock":
                             st.caption("🔒 Vaga demonstrativa — sem link disponível")
 
-                        if st.button(f"✉️ Gerar Cover Letter", key=f"cover_{i}"):
+                        cover_key = f"cover_text_{i}"
+                        if st.button(f"✉️ Gerar Cover Letter", key=f"cover_btn_{i}"):
                             with st.spinner("✍️ Claude escrevendo seu cover letter..."):
                                 cover = generate_cover_letter(analysis, job)
                             if cover:
-                                st.markdown("---")
-                                st.markdown("**✉️ Cover Letter gerado pelo Claude:**")
-                                st.text_area(
-                                    label="",
-                                    value=cover,
-                                    height=300,
-                                    key=f"cover_text_{i}",
-                                )
-                                st.caption("📋 Selecione o texto acima e copie — personalize antes de enviar!")
+                                st.session_state[cover_key] = cover
                             else:
                                 st.warning("Não foi possível gerar o cover letter. Tente novamente.")
+
+                        if cover_key in st.session_state:
+                            st.markdown("---")
+                            st.markdown("**✉️ Cover Letter gerado pelo Claude:**")
+                            st.text_area(
+                                label="",
+                                value=st.session_state[cover_key],
+                                height=300,
+                                key=f"cover_area_{i}",
+                            )
+                            st.caption("📋 Selecione o texto acima e copie — personalize antes de enviar!")
 
         except Exception as e:
             st.error(f"Erro inesperado: {str(e)}")
