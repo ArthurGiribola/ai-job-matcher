@@ -123,11 +123,12 @@ if analyze_btn:
     location=city if city else "",
 )
                 results = rank_jobs(
-                    jobs=jobs,
-                    candidate_skills=profile["skills"],
-                    candidate_seniority=profile.get("seniority", seniority),
-                    limit=50,
-                )
+    jobs=jobs,
+    candidate_skills=profile["skills"],
+    candidate_seniority=profile.get("seniority", seniority),
+    limit=50,
+    resume_text=final_text,
+)
                 missing = get_top_missing_skills(results)
 
                 if remote_only:

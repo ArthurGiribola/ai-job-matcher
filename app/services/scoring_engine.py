@@ -16,7 +16,28 @@ def normalize_skills(skills: list[str]) -> set[str]:
     return {s.strip().lower() for s in skills if s.strip()}
 
 
-def skill_score(candidate_skills: list[str], job_skills: list[str]) -> float:
+def skill_score(
+    candidate_skills: list[str],
+    job_skills: list[str],
+    resume_text: str = "",
+    job: dict = None,
+) -> float:
+    """
+    Calcula compatibilidade de skills.
+    
+    Se resume_text e job forem fornecidos: usa embeddings semânticos (real AI).
+    Caso contrário: usa Jaccard como fallback (keyword matching).
+    """
+    # Caminho semântico — embedding real
+    if resume_text and job:
+        try:
+            from app.services.embedder import resume_job_similarity
+            semantic = resume_job_similarity(resume_text, job)
+            return min(1.0, semantic)
+        except Exception as e:
+            print(f"Embedding falhou, usando Jaccard: {e}")
+
+    # Fallback — Jaccard
     if not job_skills:
         return 0.5
     cv_set = normalize_skills(candidate_skills)
@@ -84,10 +105,21 @@ def bonus_score(candidate_skills: list[str], job_skills: list[str]) -> float:
     return min(0.10, bonus)
 
 
-def calculate_final_score(candidate_skills, job, candidate_seniority="junior", filters=None):
+def calculate_final_score(
+    candidate_skills,
+    job,
+    candidate_seniority="junior",
+    filters=None,
+    resume_text: str = "",
+):
     filters = filters or {}
     job_skills = job.get("skills_required", [])
-    s_skills    = skill_score(candidate_skills, job_skills)
+    s_skills = skill_score(
+        candidate_skills,
+        job_skills,
+        resume_text=resume_text,
+        job=job,
+    )
     s_seniority = seniority_score(candidate_seniority, job.get("seniority", "any"))
     s_recency   = recency_score(job.get("posted_at", ""))
     s_filters   = filter_adherence_score(job, filters)
@@ -123,10 +155,24 @@ def calculate_final_score(candidate_skills, job, candidate_seniority="junior", f
     }
 
 
-def rank_jobs(jobs, candidate_skills, candidate_seniority="junior", filters=None, min_score=0.0, limit=20):
+def rank_jobs(
+    jobs,
+    candidate_skills,
+    candidate_seniority="junior",
+    filters=None,
+    min_score=0.0,
+    limit=20,
+    resume_text: str = "",
+):
     results = []
     for job in jobs:
-        match = calculate_final_score(candidate_skills, job, candidate_seniority, filters)
+        match = calculate_final_score(
+            candidate_skills,
+            job,
+            candidate_seniority,
+            filters,
+            resume_text=resume_text,
+        )
         if match["score"] >= min_score:
             results.append({
                 "job": {
