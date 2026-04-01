@@ -6,7 +6,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.services.resume_parser import extract_text_from_pdf
-from app.services.resume_analyzer import analyze_resume, get_skill_names
+from app.services.resume_analyzer import analyze_resume, get_skill_names, generate_job_explanation
 from app.services.job_collector import get_jobs, SUPPORTED_COUNTRIES
 from app.services.scoring_engine import rank_jobs, get_top_missing_skills
 
@@ -324,6 +324,12 @@ if analyze_btn:
                         hiring_pct = int(result.get("hiring_probability", 0) * 100)
                         color = "#44ff44" if hiring_pct >= 60 else "#ffaa00" if hiring_pct >= 40 else "#ff4444"
                         st.markdown(f'<p style="color:{color}; font-size:0.9em;">🎯 Probabilidade de chamada: <b>{hiring_pct}%</b></p>', unsafe_allow_html=True)
+
+                        if i < 3 and analysis.get("source") == "claude":
+                            with st.spinner("🤖 Claude gerando análise personalizada..."):
+                                explanation = generate_job_explanation(analysis, job, result)
+                            if explanation:
+                                st.info(f"💡 **Conselho do Claude:** {explanation}")
 
                         if job.get("url") and job.get("url").startswith("http") and job.get("source") != "mock":
                             st.link_button("🔗 Ver vaga completa", job["url"])

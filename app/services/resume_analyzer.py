@@ -131,3 +131,48 @@ def get_skill_names(analysis: dict) -> list[str]:
 
 def get_skill_levels(analysis: dict) -> dict[str, str]:
     return {s["name"]: s["level"] for s in analysis.get("skills", [])}
+
+
+def generate_job_explanation(
+    analysis: dict,
+    job: dict,
+    match_result: dict,
+) -> str:
+    """
+    Gera explicação personalizada de por que o candidato
+    deve ou não se candidatar a essa vaga.
+    Chamada apenas para as top 3 vagas.
+    """
+    try:
+        client = _get_client()
+        prompt = f"""You are a brutally honest career coach.
+
+Candidate profile:
+- Seniority: {analysis.get('seniority')}
+- Experience: {analysis.get('experience_years')} years
+- Skills: {[s['name'] for s in analysis.get('skills', [])[:10]]}
+- Project complexity: {analysis.get('project_complexity')}
+- Red flags: {analysis.get('red_flags', [])}
+
+Job: {job.get('title')} at {job.get('company')}
+- Required skills: {job.get('skills_required', [])}
+- Seniority: {job.get('seniority')}
+- Match score: {match_result.get('score_percent')}
+- Missing skills: {match_result.get('missing_skills', [])}
+
+In 2-3 sentences in Portuguese, explain:
+1. The main reason to apply or not apply
+2. What to emphasize in the application
+3. The biggest gap to address
+
+Be direct and actionable. No fluff."""
+
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=200,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return message.content[0].text.strip()
+    except Exception as e:
+        print(f"Explanation failed: {e}")
+        return ""
