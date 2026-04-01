@@ -21,3 +21,9 @@ env/
 # OS
 .DS_Store
 Thumbs.db
+
+__pycache__/
+*.pyc
+*.pyo
+data/jobs_cache*.json
+.claude/settings.local.json
