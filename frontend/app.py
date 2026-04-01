@@ -285,6 +285,9 @@ if analyze_btn:
             else:
                 st.subheader(f"💼 {len(results)} vagas encontradas para você em {country_name}")
 
+            if "open_expanders" not in st.session_state:
+                st.session_state.open_expanders = set()
+
             if not results:
                 st.warning("Nenhuma vaga encontrada. Tente reduzir o score mínimo ou mudar os filtros.")
             else:
@@ -297,7 +300,7 @@ if analyze_btn:
 
                     with st.expander(
                         f"{color} {job['title']} — {job['company']} | {result['score_percent']}",
-                        expanded=(i < 3)
+                        expanded=(i < 3 or i in st.session_state.open_expanders or f"cover_text_{i}" in st.session_state)
                     ):
                         col1, col2, col3 = st.columns(3)
                         with col1:
@@ -355,6 +358,9 @@ if analyze_btn:
                                 key=f"cover_area_{i}",
                             )
                             st.caption("📋 Selecione o texto acima e copie — personalize antes de enviar!")
+                            if st.button("🗑️ Limpar cover letter", key=f"clear_{i}"):
+                                del st.session_state[cover_key]
+                                st.rerun()
 
         except Exception as e:
             st.error(f"Erro inesperado: {str(e)}")
