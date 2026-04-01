@@ -309,6 +309,10 @@ if analyze_btn:
                             st.markdown("**✅ Você tem:** " + "  ".join([f"`{s}`" for s in result["matched_skills"]]))
                         if result["missing_skills"]:
                             st.markdown("**❌ Faltam:** " + "  ".join([f"`{s}`" for s in result["missing_skills"]]))
+                        hiring_pct = int(result.get("hiring_probability", 0) * 100)
+                        color = "#44ff44" if hiring_pct >= 60 else "#ffaa00" if hiring_pct >= 40 else "#ff4444"
+                        st.markdown(f'<p style="color:{color}; font-size:0.9em;">🎯 Probabilidade de chamada: <b>{hiring_pct}%</b></p>', unsafe_allow_html=True)
+
                         if job.get("url"):
                             st.link_button("🔗 Ver vaga completa", job["url"])
 

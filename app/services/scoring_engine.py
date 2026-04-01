@@ -139,12 +139,26 @@ def calculate_final_score(
     if matched: parts.append(f"você tem: {', '.join(matched[:4])}")
     if missing: parts.append(f"faltam: {', '.join(missing[:3])}")
     if not missing: parts.append("você tem todas as skills exigidas")
+    try:
+        from app.services.hiring_predictor import predict_hiring_probability
+        hiring_prob = predict_hiring_probability(
+            semantic_score=s_skills,
+            candidate_skills=candidate_skills,
+            job_skills=job_skills,
+            candidate_seniority=candidate_seniority,
+            job_seniority=job.get("seniority", "any"),
+        )
+    except Exception as e:
+        print(f"Hiring predictor falhou: {e}")
+        hiring_prob = 0.0
+
     return {
         "score": round(final, 3),
         "score_percent": f"{percent}%",
         "reason": " — ".join(parts) + ".",
         "matched_skills": matched,
         "missing_skills": missing,
+        "hiring_probability": hiring_prob,
         "breakdown": {
             "skills": round(s_skills, 3),
             "seniority": round(s_seniority, 3),
@@ -188,6 +202,7 @@ def rank_jobs(
                 "reason": match["reason"],
                 "matched_skills": match["matched_skills"],
                 "missing_skills": match["missing_skills"],
+                "hiring_probability": match["hiring_probability"],
                 "breakdown": match["breakdown"],
             })
     results.sort(key=lambda x: x["score"], reverse=True)
