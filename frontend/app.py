@@ -5,69 +5,74 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.services.resume_parser import parse_resume_text, extract_text_from_pdf
-from app.services.job_collector import get_jobs
+from app.services.resume_parser import extract_text_from_pdf
+from app.services.resume_analyzer import analyze_resume, get_skill_names
+from app.services.job_collector import get_jobs, SUPPORTED_COUNTRIES
 from app.services.scoring_engine import rank_jobs, get_top_missing_skills
 
 SKILL_RESOURCES = {
     "Docker": "https://docs.docker.com/get-started/",
     "Kubernetes": "https://kubernetes.io/docs/tutorials/",
-    "AWS": "https://aws.amazon.com/training/",
+    "Aws": "https://aws.amazon.com/training/",
     "Machine Learning": "https://www.coursera.org/learn/machine-learning",
     "Python": "https://docs.python.org/3/tutorial/",
-    "FastAPI": "https://fastapi.tiangolo.com/tutorial/",
-    "PostgreSQL": "https://www.postgresql.org/docs/current/tutorial.html",
-    "NLP": "https://huggingface.co/learn/nlp-course/",
-    "MLflow": "https://mlflow.org/docs/latest/tutorials-and-examples/",
-    "HuggingFace": "https://huggingface.co/learn",
-    "Power BI": "https://learn.microsoft.com/en-us/power-bi/",
+    "Fastapi": "https://fastapi.tiangolo.com/tutorial/",
+    "Postgresql": "https://www.postgresql.org/docs/current/tutorial.html",
+    "Nlp": "https://huggingface.co/learn/nlp-course/",
+    "Mlflow": "https://mlflow.org/docs/latest/tutorials-and-examples/",
+    "Huggingface": "https://huggingface.co/learn",
+    "Power Bi": "https://learn.microsoft.com/en-us/power-bi/",
     "Terraform": "https://developer.hashicorp.com/terraform/tutorials",
-    "LangChain": "https://python.langchain.com/docs/get_started/",
+    "Langchain": "https://python.langchain.com/docs/get_started/",
     "React": "https://react.dev/learn",
     "Git": "https://git-scm.com/book/en/v2",
+    "Sql": "https://www.w3schools.com/sql/",
+    "Scikit-Learn": "https://scikit-learn.org/stable/tutorial/",
 }
 
-COUNTRY_OPTIONS = {
-    "🇧🇷 Brasil (mock jobs)": "br",
-    "🇬🇧 Reino Unido": "gb",
-    "🇺🇸 Estados Unidos": "us",
-    "🇩🇪 Alemanha": "de",
-    "🇨🇦 Canadá": "ca",
-    "🌐 Remoto (global)": "gb",
+CURRENCY_BY_COUNTRY = {
+    "gb": "£", "us": "$", "au": "A$", "ca": "C$",
+    "de": "€", "fr": "€", "nl": "€", "at": "€",
+    "be": "€", "it": "€", "es": "€", "pl": "€",
+    "ch": "CHF", "sg": "S$", "nz": "NZ$",
+    "za": "R", "in": "₹", "br": "R$",
+    "mx": "$MX", "ru": "₽",
 }
 
-def format_salary(salary_min, salary_max, source):
-    """Formata salário com moeda correta baseado na fonte da vaga."""
+COUNTRY_OPTIONS = {name: code for code, name in SUPPORTED_COUNTRIES.items()}
+
+
+def format_salary(salary_min, salary_max, country_code, source):
+    if source in ["gupy", "mock"]:
+        currency = "R$"
+    else:
+        currency = CURRENCY_BY_COUNTRY.get(country_code, "£")
     if not salary_min and not salary_max:
         return "Não informado"
-    currency = "R$" if source in ["gupy", "mock", None] else "£"
     if salary_max:
-        return f"{currency}{salary_min:,.0f} – {currency}{salary_max:,.0f}"
-    return f"{currency}{salary_min:,.0f}+"
+        return f"{currency} {salary_min:,.0f} – {salary_max:,.0f}"
+    return f"{currency} {salary_min:,.0f}+"
 
-st.set_page_config(
-    page_title="AI Job Matcher",
-    page_icon="🎯",
-    layout="wide"
-)
+
+st.set_page_config(page_title="AI Job Matcher", page_icon="🎯", layout="wide")
 
 st.title("🎯 AI Job Matcher")
-st.markdown("Envie seu currículo e descubra as vagas mais compatíveis com seu perfil.")
+st.markdown("Envie seu currículo e descubra as vagas mais compatíveis com seu perfil — em qualquer lugar do mundo.")
 
 with st.sidebar:
     st.header("⚙️ Filtros")
     seniority = st.selectbox("Nível", ["junior", "mid", "senior", "lead"])
-    country_label = st.selectbox("País / Região", list(COUNTRY_OPTIONS.keys()))
-    country_code = COUNTRY_OPTIONS[country_label]
-    city = st.text_input("Cidade (opcional)", placeholder="Ex: London, São Paulo")
+    country_name = st.selectbox("País", list(COUNTRY_OPTIONS.keys()))
+    country_code = COUNTRY_OPTIONS[country_name]
+    city = st.text_input("Cidade (opcional)", placeholder="Ex: London, Berlin, São Paulo...")
+    st.caption("Digite qualquer cidade do mundo")
     remote_only = st.checkbox("Apenas vagas remotas", value=False)
-    min_score = st.slider("Score mínimo", 0, 100, 40) / 100
+    min_score = st.slider("Score mínimo (%)", 0, 100, 40) / 100
     limit = st.slider("Número de vagas", 5, 20, 10)
 
 st.markdown("---")
 
 tab1, tab2 = st.tabs(["📄 Colar texto", "📎 Upload PDF"])
-
 resume_text = ""
 resume_text_from_pdf = ""
 
@@ -112,23 +117,34 @@ if analyze_btn:
     if not final_text or len(final_text) < 50:
         st.error("Por favor, cole o texto ou envie o PDF do seu currículo.")
     else:
-        with st.spinner("Analisando seu currículo e buscando vagas..."):
+        with st.spinner(f"Analisando currículo com IA e buscando vagas em {country_name}..."):
             try:
-                profile = parse_resume_text(final_text)
-                location = city if city else ("london" if country_code == "gb" else country_code)
+                # Análise com Claude
+                analysis = analyze_resume(final_text)
+                profile = {
+                    "skills": get_skill_names(analysis),
+                    "total_skills": len(analysis.get("skills", [])),
+                    "seniority": analysis.get("seniority", "junior"),
+                    "strengths": analysis.get("strengths", []),
+                    "source": analysis.get("source", "fallback"),
+                }
+
+                # Busca vagas
                 jobs = get_jobs(
-    candidate_skills=profile["skills"],
-    limit=40,
-    country=country_code,
-    location=city if city else "",
-)
+                    candidate_skills=profile["skills"],
+                    limit=40,
+                    country=country_code,
+                    location=city.strip() if city else "",
+                )
+
+                # Ranking semântico
                 results = rank_jobs(
-    jobs=jobs,
-    candidate_skills=profile["skills"],
-    candidate_seniority=profile.get("seniority", seniority),
-    limit=50,
-    resume_text=final_text,
-)
+                    jobs=jobs,
+                    candidate_skills=profile["skills"],
+                    candidate_seniority=profile.get("seniority", seniority),
+                    limit=50,
+                    resume_text=final_text,
+                )
                 missing = get_top_missing_skills(results)
 
                 if remote_only:
@@ -136,8 +152,9 @@ if analyze_btn:
                 results = [r for r in results if r["score"] >= min_score]
                 results = results[:limit]
 
-                st.success(f"✅ Currículo analisado! {profile['total_skills']} skills encontradas.")
+                st.success(f"✅ {profile['total_skills']} skills encontradas. Análise via {'Claude AI' if analysis.get('source') == 'claude' else 'parser básico'}.")
 
+                # PERFIL
                 st.markdown("---")
                 st.subheader("👤 Seu Perfil")
                 col1, col2, col3, col4 = st.columns(4)
@@ -154,9 +171,32 @@ if analyze_btn:
                 st.markdown("  ".join([f"`{s}`" for s in profile["skills"]]))
 
                 if profile.get("strengths"):
-                    st.markdown("**⭐ Pontos fortes (skills de alto valor):**")
-                    st.markdown("  ".join([f"`{s}`" for s in profile["strengths"]]))
+                    st.markdown("**⭐ Pontos fortes:**")
+                    st.markdown("  ".join([f"`{s}`" for s in profile["strengths"][:5]]))
 
+                # ANÁLISE CLAUDE
+                if analysis.get("source") == "claude":
+                    st.markdown("---")
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.markdown("**🔍 Análise do perfil:**")
+                        st.markdown(f"_{analysis.get('profile_summary', '')}_")
+                        if analysis.get("weaknesses"):
+                            st.markdown("**⚠️ Pontos a desenvolver:**")
+                            for w in analysis["weaknesses"][:3]:
+                                st.markdown(f"- {w}")
+                    with col2:
+                        if analysis.get("red_flags"):
+                            st.markdown("**🚨 Red flags identificados:**")
+                            for rf in analysis["red_flags"][:3]:
+                                st.markdown(f"- {rf}")
+                        complexity = analysis.get("project_complexity", "")
+                        if complexity:
+                            labels = {"low": "🔴 Baixa", "medium": "🟡 Média", "high": "🟢 Alta"}
+                            st.markdown(f"**Complexidade dos projetos:** {labels.get(complexity, complexity)}")
+                            st.markdown(f"_{analysis.get('project_complexity_reasoning', '')}_")
+
+                # SKILLS PARA APRENDER
                 if missing:
                     st.markdown("---")
                     st.subheader("📈 Skills para aprender")
@@ -165,15 +205,16 @@ if analyze_btn:
                         skill_name = item['skill'].title()
                         count = item['appears_in_top_jobs']
                         resource = SKILL_RESOURCES.get(skill_name, "")
-                        col1, col2 = st.columns([3, 1])
+                        col1, col2 = st.columns([4, 1])
                         with col1:
-                            st.markdown(f"**{skill_name}** — aparece em {count} das suas top vagas")
+                            st.markdown(f"**{skill_name}** — aparece em **{count}** das suas top vagas")
                         with col2:
                             if resource:
                                 st.link_button("📚 Aprender", resource)
 
+                # VAGAS
                 st.markdown("---")
-                st.subheader(f"💼 Top {len(results)} vagas para você")
+                st.subheader(f"💼 Top {len(results)} vagas para você em {country_name}")
 
                 if not results:
                     st.warning("Nenhuma vaga encontrada. Tente reduzir o score mínimo ou mudar os filtros.")
@@ -182,6 +223,7 @@ if analyze_btn:
                         job = result["job"]
                         score = result["score"]
                         source = job.get("source", "mock")
+                        job_country = job.get("country", country_code)
                         color = "🟢" if score >= 0.7 else "🟡" if score >= 0.5 else "🔴"
 
                         with st.expander(
@@ -195,26 +237,20 @@ if analyze_btn:
                                 salary_str = format_salary(
                                     job.get("salary_min", 0),
                                     job.get("salary_max", 0),
-                                    source
+                                    job_country,
+                                    source,
                                 )
                                 st.metric("Salário", salary_str)
                             with col3:
                                 st.metric("Modalidade", "🌐 Remoto" if job.get("remote") else "🏢 Presencial")
 
-                            col4, col5 = st.columns(2)
-                            with col4:
-                                st.markdown(f"📍 **{job.get('location', 'N/A')}**")
-                            with col5:
-                                st.markdown(f"👤 **{job.get('seniority', 'N/A').upper()}** | 🏢 {source.upper()}")
-
+                            st.markdown(f"📍 **{job.get('location', 'N/A')}** | 👤 **{job.get('seniority', 'N/A').upper()}** | 🏢 {source.upper()}")
                             st.markdown(f"*{result['reason']}*")
 
                             if result["matched_skills"]:
                                 st.markdown("**✅ Você tem:** " + "  ".join([f"`{s}`" for s in result["matched_skills"]]))
-
                             if result["missing_skills"]:
                                 st.markdown("**❌ Faltam:** " + "  ".join([f"`{s}`" for s in result["missing_skills"]]))
-
                             if job.get("url"):
                                 st.link_button("🔗 Ver vaga completa", job["url"])
 
