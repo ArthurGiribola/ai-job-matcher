@@ -1,154 +1,150 @@
 # 🎯 AI Job Matcher
 
-> Sistema de IA que analisa currículos e ranqueia vagas por compatibilidade técnica real.
-
-![Python](https://img.shields.io/badge/Python-3.11+-blue)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green)
-![Streamlit](https://img.shields.io/badge/Streamlit-1.0+-red)
-![License](https://img.shields.io/badge/License-MIT-yellow)
+> AI-powered system that analyzes resumes, matches candidates with real job opportunities, and identifies skill gaps — built with Python, FastAPI, NLP, and Streamlit.
 
 ---
 
-## 🧠 O problema que resolve
+## 🚀 Live Demo
 
-Candidatos perdem horas aplicando para vagas sem saber se têm o perfil certo.
-Plataformas como LinkedIn fazem matching superficial, sem considerar compatibilidade técnica real.
-
-**Este sistema responde duas perguntas:**
-- Quais vagas mais combinam comigo agora?
-- O que está faltando no meu perfil para conseguir vagas melhores?
+> Upload your resume (PDF or text) → Get ranked job matches with compatibility scores → See exactly what skills you're missing
 
 ---
 
-## 🔥 Como funciona
+## 🧠 What it does
 
-1. Usuário cola o texto do currículo
-2. Sistema extrai skills automaticamente com NLP
-3. Detecta nível de senioridade
-4. Compara com 20+ vagas reais do mercado brasileiro
-5. Calcula score de compatibilidade (%)
-6. Retorna vagas ranqueadas com justificativa e gaps
+Most job platforms show you jobs. This system tells you **why** you match or don't — and what to do about it.
+
+- 📄 **Resume Analysis** — Upload PDF or paste text, extracts 18+ skills automatically
+- 🎯 **Job Matching** — Ranks jobs by real compatibility score (not keyword stuffing)
+- 📊 **Skill Gap Detection** — Shows exactly what's missing for your top matches
+- ⭐ **Strengths Highlight** — Identifies your high-value skills (AWS, ML, Docker, etc.)
+- 🔗 **Direct Apply Links** — One click to apply on Gupy or LinkedIn
 
 ---
 
-## 📊 Exemplo de output real
-```json
-{
-  "job": "Junior ML Engineer — Olist",
-  "score": 0.731,
-  "score_percent": "73%",
-  "reason": "Bom match (73%) — você tem: Python, scikit-learn, pandas, SQL",
-  "missing_skills": [],
-  "salary": "R$5.000 – R$8.500"
-}
+## 📊 Scoring Algorithm
+
+The match score is calculated across 5 dimensions:
+
+| Dimension | Weight | Description |
+|-----------|--------|-------------|
+| Skills compatibility | 40% | Jaccard similarity between resume and job skills |
+| Seniority match | 20% | Penalizes over/under-qualified matches |
+| Job recency | 15% | Exponential decay for older postings |
+| Filter adherence | 15% | Remote, location, salary preferences |
+| High-value skill bonus | 10% | AWS, ML, Docker, LLM, etc. |
+
+---
+
+## 🏗️ Architecture
+```
+User (PDF/Text)
+      ↓
+Streamlit Frontend (port 8501)
+      ↓
+FastAPI Backend (port 8000)
+      ↓
+┌─────────────────────────────┐
+│  ResumeParserService        │  ← pdfminer.six + spaCy
+│  SkillExtractorService      │  ← Custom dictionary (300+ skills)
+│  ScoringEngine              │  ← Weighted scoring algorithm
+└─────────────────────────────┘
+      ↓
+JSON Response with ranked jobs + gaps
 ```
 
 ---
 
-## ⚙️ Como o score é calculado
+## ⚙️ Tech Stack
 
-| Dimensão | Peso |
-|----------|------|
-| Skills compatíveis (Jaccard Similarity) | 40% |
-| Nível da vaga vs candidato | 20% |
-| Recência da vaga | 15% |
-| Aderência aos filtros | 15% |
-| Bônus por skills de alto valor (AWS, ML, Docker) | 10% |
+**Backend:** Python 3.11+, FastAPI, Pydantic, Uvicorn
 
----
+**NLP & AI:** spaCy, pdfminer.six, Custom skill dictionary
 
-## 🏗️ Arquitetura
-```
-ai-job-matcher/
-├── app/
-│   ├── main.py               # API FastAPI — 6 endpoints
-│   └── services/
-│       ├── scoring_engine.py # Motor de scoring com 5 dimensões
-│       └── resume_parser.py  # Extrator de skills com NLP
-├── data/
-│   └── mock_jobs.json        # 20 vagas reais do mercado BR
-├── frontend/
-│   └── app.py                # Interface Streamlit
-└── requirements.txt
-```
+**Frontend:** Streamlit
+
+**Data:** JSON mock jobs (Gupy/LinkedIn format) → Real API integration coming
 
 ---
 
 ## 🚀 Quick Start
-
-### Pré-requisitos
-- Python 3.11+
-- Git
-
-### Instalação
 ```bash
-# 1. Clonar o repositório
+# 1. Clone the repository
 git clone https://github.com/ArthurGiribola/ai-job-matcher.git
 cd ai-job-matcher
 
-# 2. Criar e ativar ambiente virtual
+# 2. Create virtual environment
 python -m venv venv
 venv\Scripts\activate  # Windows
-source venv/bin/activate  # Mac/Linux
+# source venv/bin/activate  # Mac/Linux
 
-# 3. Instalar dependências
+# 3. Install dependencies
 pip install -r requirements.txt
+
+# 4. Download spaCy model
 python -m spacy download en_core_web_sm
 
-# 4. Rodar a API (terminal 1)
+# 5. Start the API
 uvicorn app.main:app --reload
 
-# 5. Rodar a interface (terminal 2)
+# 6. Start the interface (new terminal)
 python -m streamlit run frontend/app.py
 ```
 
-Acesse: `http://localhost:8501`
+Open `http://localhost:8501` and upload your resume.
 
 ---
 
-## 🔌 API Endpoints
+## 📡 API Endpoints
 
-| Método | Endpoint | Descrição |
-|--------|----------|-----------|
-| GET | `/` | Status da API |
-| GET | `/jobs` | Lista todas as vagas |
-| POST | `/match` | Ranqueia vagas por skills |
-| POST | `/match/quick` | Match rápido sem filtros |
-| POST | `/resume/analyze-text` | Analisa texto do currículo |
-| POST | `/resume/upload` | Upload de PDF |
-| POST | `/resume/analyze-and-match` | Analisa currículo + ranqueia vagas |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/` | Health check |
+| GET | `/jobs` | List all available jobs |
+| POST | `/match` | Match skills against jobs |
+| POST | `/match/quick` | Quick match with skill list |
+| POST | `/resume/analyze-text` | Analyze resume text |
+| POST | `/resume/upload` | Upload and analyze PDF |
+| POST | `/resume/analyze-and-match` | Full pipeline in one call |
 
-Documentação completa: `http://localhost:8000/docs`
-
----
-
-## 🛠️ Tech Stack
-
-| Camada | Tecnologia |
-|--------|------------|
-| API | Python, FastAPI, Pydantic |
-| NLP | spaCy, regex, dicionário customizado |
-| Scoring | Jaccard Similarity, algoritmo próprio |
-| Interface | Streamlit |
-| Dados | JSON (mock), Gupy API (em breve) |
+Full docs available at `http://localhost:8000/docs`
 
 ---
 
-## 📈 Roadmap
-
-- [x] Motor de scoring com 5 dimensões
-- [x] Extrator de skills com NLP
-- [x] API REST com FastAPI
-- [x] Interface visual com Streamlit
-- [ ] Upload de PDF direto
-- [ ] Integração com API de vagas reais (Gupy, Adzuna)
-- [ ] Deploy em cloud (AWS EC2)
-- [ ] Dashboard de evolução de perfil
-- [ ] Reescrita de currículo por vaga
+## 📁 Project Structure
+```
+ai-job-matcher/
+├── app/
+│   ├── main.py                 # FastAPI app + endpoints
+│   └── services/
+│       ├── scoring_engine.py   # Match scoring algorithm
+│       └── resume_parser.py    # PDF parser + skill extractor
+├── data/
+│   └── mock_jobs.json          # 20 real Brazilian tech jobs
+├── frontend/
+│   └── app.py                  # Streamlit interface
+├── requirements.txt
+└── README.md
+```
 
 ---
 
-## 👨‍💻 Autor
+## 🗺️ Roadmap
+
+- [x] Resume parser (PDF + text)
+- [x] Skill extraction with NLP
+- [x] Scoring engine with 5 dimensions
+- [x] REST API with FastAPI
+- [x] Visual interface with Streamlit
+- [x] PDF upload directly in UI
+- [ ] Real job API integration (Gupy, Adzuna)
+- [ ] Deploy on cloud (Railway + Streamlit Cloud)
+- [ ] Resume rewrite suggestions per job
+- [ ] Career evolution dashboard
+
+---
+
+## 👤 Author
 
 **Arthur Giribola**
 - LinkedIn: [linkedin.com/in/arthurgiribola](https://linkedin.com/in/arthurgiribola)
@@ -156,6 +152,6 @@ Documentação completa: `http://localhost:8000/docs`
 
 ---
 
-## 📄 Licença
+## 📄 License
 
-MIT License — veja [LICENSE](LICENSE) para detalhes.
+MIT License
