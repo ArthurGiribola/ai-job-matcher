@@ -193,8 +193,9 @@ if analyze_btn:
 
             if remote_only:
                 results = [r for r in results if r["job"].get("remote")]
-            results = [r for r in results if r["score"] >= min_score]
-            results = results[:limit]
+            results_filtered = [r for r in results if r["score"] >= min_score]
+            total_qualified = len(results_filtered)
+            results = results_filtered[:limit]
 
             st.success(f"✅ {profile['total_skills']} skills encontradas. Análise via {'Claude AI' if analysis.get('source') == 'claude' else 'parser básico'}.")
 
@@ -271,7 +272,11 @@ if analyze_btn:
 
             # VAGAS
             st.markdown("---")
-            st.subheader(f"💼 Top {len(results)} vagas para você em {country_name}")
+            if total_qualified > limit:
+                st.subheader(f"💼 Top {len(results)} vagas para você em {country_name}")
+                st.caption(f"📊 {total_qualified} vagas passaram no filtro de score — mostrando as top {limit}. Aumente o slider para ver mais.")
+            else:
+                st.subheader(f"💼 {len(results)} vagas encontradas para você em {country_name}")
 
             if not results:
                 st.warning("Nenhuma vaga encontrada. Tente reduzir o score mínimo ou mudar os filtros.")
