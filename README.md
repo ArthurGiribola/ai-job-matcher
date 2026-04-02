@@ -14,10 +14,13 @@ Upload your resume (PDF or text) → Claude AI extracts your profile → Get sem
 Most job platforms show you jobs. This system tells you **why you match or don't** — and what to do about it.
 
 - 📄 **Resume Analysis** — Claude Haiku extracts skills with proficiency levels, seniority, red flags and project complexity
-- 🎯 **Semantic Matching** — Ranks jobs using sentence-transformers embeddings (not keyword stuffing)
+- 🎯 **Semantic Matching** — Ranks jobs using sentence-transformers embeddings (all-MiniLM-L6-v2), cached in memory for performance
 - 📊 **Skill Gap Detection** — Shows exactly what's missing for your top matches with learning resources
-- 🌍 **Global Job Search** — Real jobs from Adzuna API across 20+ countries
+- 🌍 **Global Job Search** — Real jobs from Adzuna API (20+ countries) + Remotive API (global remote, no key needed)
 - 🤖 **AI Profile Card** — Visual profile card with Claude's honest assessment of your experience level
+- 🎯 **Hiring Probability** — Logistic Regression model predicts call-back likelihood (0–100%) per job
+- 💡 **Explanation Engine** — Claude generates a personalized PT-BR career coaching tip for your top 3 matches
+- ✉️ **Cover Letter Generator** — Claude writes a tailored cover letter for any job in one click
 
 ---
 
@@ -41,14 +44,15 @@ User (PDF/Text)
       ↓
 Streamlit Frontend
       ↓
-┌─────────────────────────────────────┐
-│  ResumeAnalyzer (Claude Haiku)      │  ← Structured extraction
-│  Embedder (sentence-transformers)   │  ← Semantic vectors
-│  JobCollector (Adzuna API)          │  ← Real global jobs
-│  ScoringEngine (cosine similarity)  │  ← Weighted ranking
-└─────────────────────────────────────┘
+┌──────────────────────────────────────────┐
+│  ResumeAnalyzer (Claude Haiku)           │  ← Skills, seniority, red flags
+│  Embedder (all-MiniLM-L6-v2 + cache)    │  ← Semantic vectors, in-memory cache
+│  JobCollector (Adzuna + Remotive APIs)   │  ← Real global + remote jobs
+│  ScoringEngine (cosine similarity)       │  ← Weighted ranking
+│  HiringPredictor (Logistic Regression)   │  ← Call-back probability
+└──────────────────────────────────────────┘
       ↓
-Ranked jobs + skill gaps + learning resources
+Ranked jobs + hiring probability + Claude explanation + cover letter
 ```
 
 ---
@@ -56,8 +60,8 @@ Ranked jobs + skill gaps + learning resources
 ## ⚙️ Tech Stack
 
 - **Backend:** Python 3.11+, FastAPI, Pydantic, Uvicorn
-- **AI Layer:** Claude Haiku (Anthropic), sentence-transformers (all-MiniLM-L6-v2)
-- **Job Data:** Adzuna API (20+ countries)
+- **AI Layer:** Claude Haiku (Anthropic), sentence-transformers (all-MiniLM-L6-v2), scikit-learn (Logistic Regression)
+- **Job Data:** Adzuna API (20+ countries), Remotive API (global remote, free)
 - **Frontend:** Streamlit
 - **Deploy:** Streamlit Cloud
 
@@ -98,16 +102,17 @@ ai-job-matcher/
 ├── app/
 │   ├── main.py                    # FastAPI app + endpoints
 │   └── services/
-│       ├── embedder.py            # sentence-transformers embeddings
-│       ├── resume_analyzer.py     # Claude Haiku structured extraction
+│       ├── embedder.py            # sentence-transformers + in-memory cache
+│       ├── resume_analyzer.py     # Claude Haiku: analysis, explanation, cover letter
 │       ├── resume_parser.py       # PDF parser + basic skill extractor
-│       ├── job_collector.py       # Adzuna API integration
-│       └── scoring_engine.py      # Semantic scoring algorithm
+│       ├── job_collector.py       # Adzuna + Remotive API integration
+│       ├── scoring_engine.py      # Semantic scoring algorithm
+│       └── hiring_predictor.py    # Logistic Regression hiring probability
 ├── data/
 │   └── mock_jobs.json             # Brazilian mock jobs fallback
 ├── frontend/
-│   └── app.py                     # Streamlit interface
-├── tests/                         # 23 passing tests
+│   └── app.py                     # Streamlit interface (standalone)
+├── tests/                         # 25 passing tests
 ├── .streamlit/
 │   └── secrets.toml.example       # Environment variables template
 ├── CLAUDE.md                      # Project context for Claude Code
@@ -120,15 +125,18 @@ ai-job-matcher/
 
 - ✅ Resume parser (PDF + text)
 - ✅ Claude AI structured extraction (skills, seniority, red flags)
-- ✅ Semantic embeddings matching
+- ✅ Semantic embeddings matching (all-MiniLM-L6-v2 + in-memory cache)
 - ✅ Scoring engine with 5 dimensions
 - ✅ REST API with FastAPI
 - ✅ Streamlit UI with visual profile card
 - ✅ Real job API integration (Adzuna — 20+ countries)
+- ✅ Remotive API integration (global remote jobs, no key needed)
 - ✅ Deploy on Streamlit Cloud
-- ⏳ Hiring probability prediction (Phase 3)
-- ⏳ Explanation engine ("why you're not getting callbacks")
+- ✅ Hiring probability prediction — Logistic Regression per job
+- ✅ Explanation engine — Claude coaching tip for top 3 matches
+- ✅ Cover letter generator — one click per job
 - ⏳ Persistent cache (Redis)
+- ⏳ Structured logging / observability
 - ⏳ Career evolution dashboard
 
 ---
