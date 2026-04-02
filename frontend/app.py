@@ -172,7 +172,6 @@ if analyze_btn:
             time.sleep(0.5)
             update_progress("Claude está analisando seu perfil...", "🤖")
 
-            # Análise com Claude
             analysis = analyze_resume(final_text)
             profile = {
                 "skills": get_skill_names(analysis),
@@ -207,174 +206,192 @@ if analyze_btn:
             total_qualified = len(results_filtered)
             results = results_filtered[:limit]
 
+            # Persist to session_state so display survives reruns
+            st.session_state["last_results"] = results
+            st.session_state["last_analysis"] = analysis
+            st.session_state["last_profile"] = profile
+            st.session_state["last_missing"] = missing
+            st.session_state["last_total_qualified"] = total_qualified
+            st.session_state["last_country_name"] = country_name
+            st.session_state["last_jobs_count"] = len(jobs)
+
+            # Clear cover letters from previous search
+            for k in [k for k in st.session_state if k.startswith("cover_text_")]:
+                del st.session_state[k]
+
             st.success(f"✅ {profile['total_skills']} skills encontradas. Análise via {'Claude AI' if analysis.get('source') == 'claude' else 'parser básico'}.")
-
-            # PERFIL
-            st.markdown("---")
-            st.subheader("👤 Seu Perfil")
-            col1, col2, col3, col4 = st.columns(4)
-            with col1:
-                st.metric("Skills encontradas", profile["total_skills"])
-            with col2:
-                st.metric("Nível detectado", profile["seniority"].upper())
-            with col3:
-                st.metric("Vagas analisadas", len(jobs))
-            with col4:
-                st.metric("Matches encontrados", len(results))
-
-            st.markdown("**🛠️ Skills identificadas:**")
-            st.markdown("  ".join([f"`{s}`" for s in profile["skills"]]))
-
-            if profile.get("strengths"):
-                st.markdown("**⭐ Pontos fortes:**")
-                st.markdown("  ".join([f"`{s}`" for s in profile["strengths"][:5]]))
-
-            # ANÁLISE CLAUDE
-            if analysis.get("source") == "claude":
-                st.markdown("---")
-                complexity = analysis.get("project_complexity", "low")
-                complexity_color = {"low": "#ff4444", "medium": "#ffaa00", "high": "#44ff44"}.get(complexity, "#888")
-                complexity_label = {"low": "Baixa", "medium": "Média", "high": "Alta"}.get(complexity, complexity)
-
-                st.markdown(f"""
-                <div style="background: #1a1a2e; border-left: 4px solid #7c7cff; border-radius: 8px; padding: 20px; margin: 10px 0;">
-                    <h4 style="color:#7c7cff; margin:0 0 10px 0;">🤖 Análise do Claude</h4>
-                    <p style="color:#ddd; font-style:italic;">"{analysis.get('profile_summary', '')}"</p>
-                    <hr style="border-color:#333; margin: 12px 0;">
-                    <div style="display:flex; gap:20px; flex-wrap:wrap;">
-                        <span style="color:#aaa;">📊 Nível: <b style="color:#fff;">{analysis.get('seniority','').upper()}</b></span>
-                        <span style="color:#aaa;">⏱️ Experiência: <b style="color:#fff;">{analysis.get('experience_years', 0)} ano(s)</b></span>
-                        <span style="color:#aaa;">🎯 Complexidade: <b style="color:{complexity_color};">{complexity_label}</b></span>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-
-                col1, col2 = st.columns(2)
-                with col1:
-                    if analysis.get("weaknesses"):
-                        st.markdown("**⚠️ Pontos a desenvolver:**")
-                        for w in analysis["weaknesses"][:3]:
-                            st.markdown(f"- {w}")
-                with col2:
-                    if analysis.get("red_flags"):
-                        st.markdown("**🚨 Red flags:**")
-                        for rf in analysis["red_flags"][:3]:
-                            st.markdown(f"- {rf}")
-
-            # SKILLS PARA APRENDER
-            if missing:
-                st.markdown("---")
-                st.subheader("📈 Skills para aprender")
-                st.markdown("Baseado nas vagas que mais combinam com você:")
-                SKIP_SKILLS = {"oop", "agile", "scrum", "communication", "teamwork", "problem solving", "neural networks"}
-                for item in missing:
-                    skill_name = item['skill'].title()
-                    if item['skill'].lower() in SKIP_SKILLS:
-                        continue
-                    count = item['appears_in_top_jobs']
-                    resource = SKILL_RESOURCES.get(skill_name, "")
-                    col1, col2 = st.columns([4, 1])
-                    with col1:
-                        st.markdown(f"**{skill_name}** — aparece em **{count}** das suas top vagas")
-                    with col2:
-                        if resource:
-                            st.link_button("📚 Aprender", resource)
-
-            # VAGAS
-            st.markdown("---")
-            if total_qualified > limit:
-                st.subheader(f"💼 Top {len(results)} vagas para você em {country_name}")
-                st.caption(f"📊 {total_qualified} vagas passaram no filtro de score — mostrando as top {limit}. Aumente o slider para ver mais.")
-            else:
-                st.subheader(f"💼 {len(results)} vagas encontradas para você em {country_name}")
-
-            if "open_expanders" not in st.session_state:
-                st.session_state.open_expanders = set()
-
-            if not results:
-                st.warning("Nenhuma vaga encontrada. Tente reduzir o score mínimo ou mudar os filtros.")
-            else:
-                for i, result in enumerate(results):
-                    job = result["job"]
-                    score = result["score"]
-                    source = job.get("source", "mock")
-                    job_country = job.get("country", country_code)
-                    color = "🟢" if score >= 0.7 else "🟡" if score >= 0.5 else "🔴"
-
-                    with st.expander(
-                        f"{color} {job['title']} — {job['company']} | {result['score_percent']}",
-                        expanded=(i < 3 or i in st.session_state.open_expanders or f"cover_text_{i}" in st.session_state)
-                    ):
-                        col1, col2, col3 = st.columns(3)
-                        with col1:
-                            st.metric("Match", result["score_percent"])
-                        with col2:
-                            salary_str = format_salary(
-                                job.get("salary_min", 0),
-                                job.get("salary_max", 0),
-                                job_country,
-                                source,
-                            )
-                            st.markdown("**Salário**")
-                            st.markdown(f"### {salary_str}")
-                        with col3:
-                            st.metric("Modalidade", "🌐 Remoto" if job.get("remote") else "🏢 Presencial")
-
-                        st.markdown(f"📍 **{job.get('location', 'N/A')}** | 👤 **{job.get('seniority', 'N/A').upper()}** | 🏢 {source.upper()}")
-                        st.markdown(f"*{result['reason']}*")
-
-                        if result["matched_skills"]:
-                            st.markdown("**✅ Você tem:** " + "  ".join([f"`{s}`" for s in result["matched_skills"]]))
-                        if result["missing_skills"]:
-                            st.markdown("**❌ Faltam:** " + "  ".join([f"`{s}`" for s in result["missing_skills"]]))
-                        hiring_pct = int(result.get("hiring_probability", 0) * 100)
-                        color = "#44ff44" if hiring_pct >= 60 else "#ffaa00" if hiring_pct >= 40 else "#ff4444"
-                        st.markdown(f'<p style="color:{color}; font-size:0.9em;">🎯 Probabilidade de chamada: <b>{hiring_pct}%</b></p>', unsafe_allow_html=True)
-
-                        if i < 3 and analysis.get("source") == "claude":
-                            with st.spinner("🤖 Claude gerando análise personalizada..."):
-                                explanation = generate_job_explanation(analysis, job, result)
-                            if explanation:
-                                st.info(f"💡 **Conselho do Claude:** {explanation}")
-
-                        if job.get("url") and job.get("url").startswith("http") and job.get("source") != "mock":
-                            st.link_button("🔗 Ver vaga completa", job["url"])
-                        elif job.get("source") == "mock":
-                            st.caption("🔒 Vaga demonstrativa — sem link disponível")
-
-                        if st.button(f"✉️ Gerar Cover Letter", key=f"cover_btn_{i}"):
-                            with st.spinner("✍️ Claude escrevendo seu cover letter..."):
-                                cover = generate_cover_letter(
-                                    analysis, job,
-                                    matched_skills=result.get("matched_skills"),
-                                )
-                            if cover:
-                                st.session_state[f"cover_text_{i}"] = cover
-                                st.session_state["cover_job_index"] = i
-                                st.session_state["cover_job_title"] = job.get("title", "")
-                            else:
-                                st.warning("Não foi possível gerar o cover letter. Tente novamente.")
-
-                # Cover letter fora do loop — persiste sem fechar expanders
-                active_cover = st.session_state.get("cover_job_index")
-                if active_cover is not None:
-                    cover_text = st.session_state.get(f"cover_text_{active_cover}", "")
-                    cover_title = st.session_state.get("cover_job_title", "")
-                    if cover_text:
-                        st.markdown("---")
-                        st.markdown(f"**✉️ Cover Letter gerado para: {cover_title}**")
-                        st.text_area(
-                            label="",
-                            value=cover_text,
-                            height=300,
-                            key="cover_display",
-                        )
-                        st.caption("📋 Personalize antes de enviar. Para copiar com formatação, use o bloco abaixo:")
-                        st.code(cover_text, language=None)
-                        if st.button("🗑️ Fechar cover letter"):
-                            del st.session_state["cover_job_index"]
-                            st.rerun()
 
         except Exception as e:
             st.error(f"Erro inesperado: {str(e)}")
             st.exception(e)
+
+# ── Display section — runs on every rerun while results exist in session_state ──
+if "last_results" in st.session_state:
+    results      = st.session_state["last_results"]
+    analysis     = st.session_state["last_analysis"]
+    profile      = st.session_state["last_profile"]
+    missing      = st.session_state["last_missing"]
+    total_qualified   = st.session_state["last_total_qualified"]
+    country_name_disp = st.session_state.get("last_country_name", country_name)
+    jobs_count        = st.session_state["last_jobs_count"]
+
+    # PERFIL
+    st.markdown("---")
+    st.subheader("👤 Seu Perfil")
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Skills encontradas", profile["total_skills"])
+    with col2:
+        st.metric("Nível detectado", profile["seniority"].upper())
+    with col3:
+        st.metric("Vagas analisadas", jobs_count)
+    with col4:
+        st.metric("Matches encontrados", len(results))
+
+    st.markdown("**🛠️ Skills identificadas:**")
+    st.markdown("  ".join([f"`{s}`" for s in profile["skills"]]))
+
+    if profile.get("strengths"):
+        st.markdown("**⭐ Pontos fortes:**")
+        st.markdown("  ".join([f"`{s}`" for s in profile["strengths"][:5]]))
+
+    # ANÁLISE CLAUDE
+    if analysis.get("source") == "claude":
+        st.markdown("---")
+        complexity = analysis.get("project_complexity", "low")
+        complexity_color = {"low": "#ff4444", "medium": "#ffaa00", "high": "#44ff44"}.get(complexity, "#888")
+        complexity_label = {"low": "Baixa", "medium": "Média", "high": "Alta"}.get(complexity, complexity)
+
+        st.markdown(f"""
+        <div style="background: #1a1a2e; border-left: 4px solid #7c7cff; border-radius: 8px; padding: 20px; margin: 10px 0;">
+            <h4 style="color:#7c7cff; margin:0 0 10px 0;">🤖 Análise do Claude</h4>
+            <p style="color:#ddd; font-style:italic;">"{analysis.get('profile_summary', '')}"</p>
+            <hr style="border-color:#333; margin: 12px 0;">
+            <div style="display:flex; gap:20px; flex-wrap:wrap;">
+                <span style="color:#aaa;">📊 Nível: <b style="color:#fff;">{analysis.get('seniority','').upper()}</b></span>
+                <span style="color:#aaa;">⏱️ Experiência: <b style="color:#fff;">{analysis.get('experience_years', 0)} ano(s)</b></span>
+                <span style="color:#aaa;">🎯 Complexidade: <b style="color:{complexity_color};">{complexity_label}</b></span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        col1, col2 = st.columns(2)
+        with col1:
+            if analysis.get("weaknesses"):
+                st.markdown("**⚠️ Pontos a desenvolver:**")
+                for w in analysis["weaknesses"][:3]:
+                    st.markdown(f"- {w}")
+        with col2:
+            if analysis.get("red_flags"):
+                st.markdown("**🚨 Red flags:**")
+                for rf in analysis["red_flags"][:3]:
+                    st.markdown(f"- {rf}")
+
+    # SKILLS PARA APRENDER
+    if missing:
+        st.markdown("---")
+        st.subheader("📈 Skills para aprender")
+        st.markdown("Baseado nas vagas que mais combinam com você:")
+        SKIP_SKILLS = {"oop", "agile", "scrum", "communication", "teamwork", "problem solving", "neural networks"}
+        for item in missing:
+            skill_name = item['skill'].title()
+            if item['skill'].lower() in SKIP_SKILLS:
+                continue
+            count = item['appears_in_top_jobs']
+            resource = SKILL_RESOURCES.get(skill_name, "")
+            col1, col2 = st.columns([4, 1])
+            with col1:
+                st.markdown(f"**{skill_name}** — aparece em **{count}** das suas top vagas")
+            with col2:
+                if resource:
+                    st.link_button("📚 Aprender", resource)
+
+    # VAGAS
+    st.markdown("---")
+    if total_qualified > limit:
+        st.subheader(f"💼 Top {len(results)} vagas para você em {country_name_disp}")
+        st.caption(f"📊 {total_qualified} vagas passaram no filtro de score — mostrando as top {limit}. Aumente o slider para ver mais.")
+    else:
+        st.subheader(f"💼 {len(results)} vagas encontradas para você em {country_name_disp}")
+
+    if not results:
+        st.warning("Nenhuma vaga encontrada. Tente reduzir o score mínimo ou mudar os filtros.")
+    else:
+        for i, result in enumerate(results):
+            job = result["job"]
+            score = result["score"]
+            source = job.get("source", "mock")
+            job_country = job.get("country", country_code)
+            color = "🟢" if score >= 0.7 else "🟡" if score >= 0.5 else "🔴"
+
+            with st.expander(
+                f"{color} {job['title']} — {job['company']} | {result['score_percent']}",
+                expanded=(i < 3 or f"cover_text_{i}" in st.session_state),
+            ):
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Match", result["score_percent"])
+                with col2:
+                    salary_str = format_salary(
+                        job.get("salary_min", 0),
+                        job.get("salary_max", 0),
+                        job_country,
+                        source,
+                    )
+                    st.markdown("**Salário**")
+                    st.markdown(f"### {salary_str}")
+                with col3:
+                    st.metric("Modalidade", "🌐 Remoto" if job.get("remote") else "🏢 Presencial")
+
+                st.markdown(f"📍 **{job.get('location', 'N/A')}** | 👤 **{job.get('seniority', 'N/A').upper()}** | 🏢 {source.upper()}")
+                st.markdown(f"*{result['reason']}*")
+
+                if result["matched_skills"]:
+                    st.markdown("**✅ Você tem:** " + "  ".join([f"`{s}`" for s in result["matched_skills"]]))
+                if result["missing_skills"]:
+                    st.markdown("**❌ Faltam:** " + "  ".join([f"`{s}`" for s in result["missing_skills"]]))
+
+                hiring_pct = int(result.get("hiring_probability", 0) * 100)
+                hp_color = "#44ff44" if hiring_pct >= 60 else "#ffaa00" if hiring_pct >= 40 else "#ff4444"
+                st.markdown(f'<p style="color:{hp_color}; font-size:0.9em;">🎯 Probabilidade de chamada: <b>{hiring_pct}%</b></p>', unsafe_allow_html=True)
+
+                if i < 3 and analysis.get("source") == "claude":
+                    with st.spinner("🤖 Claude gerando análise personalizada..."):
+                        explanation = generate_job_explanation(analysis, job, result)
+                    if explanation:
+                        st.info(f"💡 **Conselho do Claude:** {explanation}")
+
+                if job.get("url") and job.get("url").startswith("http") and job.get("source") != "mock":
+                    st.link_button("🔗 Ver vaga completa", job["url"])
+                elif job.get("source") == "mock":
+                    st.caption("🔒 Vaga demonstrativa — sem link disponível")
+
+                if st.button("✉️ Gerar Cover Letter", key=f"cover_btn_{i}"):
+                    with st.spinner("✍️ Claude escrevendo seu cover letter..."):
+                        cover = generate_cover_letter(
+                            analysis, job,
+                            matched_skills=result.get("matched_skills"),
+                        )
+                    if cover:
+                        st.session_state[f"cover_text_{i}"] = cover
+                    else:
+                        st.warning("Não foi possível gerar o cover letter. Tente novamente.")
+
+        # ── Cover letters — all generated ones, outside the expander loop ──
+        cover_indices = sorted(
+            [int(k.split("_")[-1]) for k in st.session_state if k.startswith("cover_text_")]
+        )
+        if cover_indices:
+            st.markdown("---")
+            st.subheader("✉️ Cover Letters Gerados")
+            for idx in cover_indices:
+                cover_text = st.session_state.get(f"cover_text_{idx}", "")
+                job_title = results[idx]["job"].get("title", f"Vaga {idx + 1}") if idx < len(results) else f"Vaga {idx + 1}"
+                company   = results[idx]["job"].get("company", "") if idx < len(results) else ""
+                with st.expander(f"✉️ {job_title} — {company}", expanded=True):
+                    st.text_area(label="", value=cover_text, height=300, key=f"cover_area_{idx}")
+                    st.caption("📋 Personalize antes de enviar. Para copiar, use o bloco abaixo:")
+                    st.code(cover_text, language=None)
+                    if st.button("🗑️ Remover", key=f"remove_cover_{idx}"):
+                        del st.session_state[f"cover_text_{idx}"]
+                        st.rerun()
