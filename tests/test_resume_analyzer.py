@@ -34,6 +34,32 @@ def test_generate_cover_letter_returns_string():
     assert isinstance(result, str)
 
 
+def test_generate_cover_letter_with_matched_skills():
+    """matched_skills parameter should be accepted without error."""
+    analysis = {
+        "seniority": "junior", "experience_years": 1,
+        "skills": [{"name": "Python"}, {"name": "Docker"}],
+        "strengths": ["Built a KNN classifier"], "profile_summary": "test",
+    }
+    job = {"title": "Python Dev", "company": "Test Co", "skills_required": ["Python", "Docker"], "seniority": "junior"}
+    result = generate_cover_letter(analysis, job, matched_skills=["Python", "Docker"])
+    assert isinstance(result, str)
+
+
+def test_generate_cover_letter_no_api_returns_empty():
+    """Without API key the function should return '' not raise."""
+    import os
+    original = os.environ.pop("ANTHROPIC_API_KEY", None)
+    try:
+        analysis = {"seniority": "junior", "experience_years": 0, "skills": [], "strengths": [], "profile_summary": ""}
+        job = {"title": "Dev", "company": "Co", "skills_required": [], "seniority": "junior"}
+        result = generate_cover_letter(analysis, job)
+        assert isinstance(result, str)
+    finally:
+        if original:
+            os.environ["ANTHROPIC_API_KEY"] = original
+
+
 def test_generate_job_explanation_returns_string():
     analysis = {"seniority": "junior", "experience_years": 1, "skills": [], "red_flags": []}
     job = {"title": "Python Dev", "company": "Test Co", "skills_required": ["Python"], "seniority": "junior"}

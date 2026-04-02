@@ -344,7 +344,10 @@ if analyze_btn:
 
                         if st.button(f"✉️ Gerar Cover Letter", key=f"cover_btn_{i}"):
                             with st.spinner("✍️ Claude escrevendo seu cover letter..."):
-                                cover = generate_cover_letter(analysis, job)
+                                cover = generate_cover_letter(
+                                    analysis, job,
+                                    matched_skills=result.get("matched_skills"),
+                                )
                             if cover:
                                 st.session_state[f"cover_text_{i}"] = cover
                                 st.session_state["cover_job_index"] = i
@@ -366,7 +369,8 @@ if analyze_btn:
                             height=300,
                             key="cover_display",
                         )
-                        st.caption("📋 Copie o texto acima e personalize antes de enviar!")
+                        st.caption("📋 Personalize antes de enviar. Para copiar com formatação, use o bloco abaixo:")
+                        st.code(cover_text, language=None)
                         if st.button("🗑️ Fechar cover letter"):
                             del st.session_state["cover_job_index"]
                             st.rerun()
