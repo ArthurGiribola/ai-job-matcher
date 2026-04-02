@@ -6,7 +6,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.services.resume_parser import extract_text_from_pdf
-from app.services.resume_analyzer import analyze_resume, get_skill_names, generate_job_explanation, generate_cover_letter
+from app.services.resume_analyzer import analyze_resume, get_skill_names, generate_job_explanation, generate_cover_letter, generate_cover_letter_v2
 from app.services.job_collector import get_jobs, SUPPORTED_COUNTRIES
 from app.services.scoring_engine import rank_jobs, get_top_missing_skills
 from app.services.embedder import warmup_mock_jobs
@@ -216,7 +216,7 @@ if analyze_btn:
             st.session_state["last_jobs_count"] = len(jobs)
 
             # Clear cover letters from previous search
-            for k in [k for k in st.session_state if k.startswith("cover_text_")]:
+            for k in [k for k in st.session_state if k.startswith(("cover_data_", "cover_original_", "cover_text_"))]:
                 del st.session_state[k]
 
             st.success(f"✅ {profile['total_skills']} skills encontradas. Análise via {'Claude AI' if analysis.get('source') == 'claude' else 'parser básico'}.")
@@ -326,7 +326,7 @@ if "last_results" in st.session_state:
 
             with st.expander(
                 f"{color} {job['title']} — {job['company']} | {result['score_percent']}",
-                expanded=(i < 3 or f"cover_text_{i}" in st.session_state),
+                expanded=(i < 3 or f"cover_data_{i}" in st.session_state),
             ):
                 col1, col2, col3 = st.columns(3)
                 with col1:
@@ -366,32 +366,91 @@ if "last_results" in st.session_state:
                 elif job.get("source") == "mock":
                     st.caption("🔒 Vaga demonstrativa — sem link disponível")
 
+                original_input = st.text_area(
+                    "Cole sua carta atual aqui (opcional — para análise e reescrita):",
+                    key=f"original_letter_{i}",
+                    height=120,
+                    placeholder="Opcional: cole uma carta existente para receber pontuação, análise de problemas e duas versões melhoradas...",
+                )
                 if st.button("✉️ Gerar Cover Letter", key=f"cover_btn_{i}"):
-                    with st.spinner("✍️ Claude escrevendo seu cover letter..."):
-                        cover = generate_cover_letter(
+                    with st.spinner("✍️ Claude analisando e escrevendo..."):
+                        cover_data = generate_cover_letter_v2(
                             analysis, job,
                             matched_skills=result.get("matched_skills"),
+                            original_letter=original_input.strip() or None,
                         )
-                    if cover:
-                        st.session_state[f"cover_text_{i}"] = cover
+                    if cover_data.get("version_a"):
+                        st.session_state[f"cover_data_{i}"] = cover_data
+                        st.session_state[f"cover_original_{i}"] = original_input.strip()
                     else:
                         st.warning("Não foi possível gerar o cover letter. Tente novamente.")
 
         # ── Cover letters — all generated ones, outside the expander loop ──
         cover_indices = sorted(
-            [int(k.split("_")[-1]) for k in st.session_state if k.startswith("cover_text_")]
+            [int(k.split("_")[-1]) for k in st.session_state if k.startswith("cover_data_")]
         )
         if cover_indices:
             st.markdown("---")
             st.subheader("✉️ Cover Letters Gerados")
             for idx in cover_indices:
-                cover_text = st.session_state.get(f"cover_text_{idx}", "")
-                job_title = results[idx]["job"].get("title", f"Vaga {idx + 1}") if idx < len(results) else f"Vaga {idx + 1}"
-                company   = results[idx]["job"].get("company", "") if idx < len(results) else ""
+                data = st.session_state[f"cover_data_{idx}"]
+                job_r     = results[idx]["job"] if idx < len(results) else {}
+                job_title = job_r.get("title", f"Vaga {idx + 1}")
+                company   = job_r.get("company", "")
+
                 with st.expander(f"✉️ {job_title} — {company}", expanded=True):
-                    st.text_area(label="", value=cover_text, height=300, key=f"cover_area_{idx}")
-                    st.caption("📋 Personalize antes de enviar. Para copiar, use o bloco abaixo:")
-                    st.code(cover_text, language=None)
+                    # Score badge + analysis (rewrite mode only)
+                    if data.get("score") is not None:
+                        score = data["score"]
+                        sc = "🟢" if score >= 70 else "🟡" if score >= 50 else "🔴"
+                        st.markdown(f"**{sc} Score da carta original: {score}/100**")
+                        if data.get("key_issues"):
+                            st.markdown("**⚠️ Problemas encontrados:**")
+                            for issue in data["key_issues"]:
+                                st.markdown(f"- {issue}")
+                        if data.get("recruiter_perspective"):
+                            st.info(f"👔 **Perspectiva do recrutador:** {data['recruiter_perspective']}")
+                        st.markdown("---")
+
+                    tab_a, tab_b = st.tabs(["✨ Versão A — Profissional", "🚀 Versão B — Ousada"])
+
+                    with tab_a:
+                        st.text_area(label="", value=data["version_a"], height=280, key=f"cover_area_a_{idx}")
+                        st.caption("📋 Copie o texto abaixo para manter a formatação:")
+                        st.code(data["version_a"], language=None)
+                        if st.button("🔄 Regenerar", key=f"regen_a_{idx}"):
+                            with st.spinner("✍️ Regenerando..."):
+                                new_data = generate_cover_letter_v2(
+                                    st.session_state["last_analysis"], job_r,
+                                    matched_skills=results[idx].get("matched_skills") if idx < len(results) else None,
+                                    original_letter=st.session_state.get(f"cover_original_{idx}") or None,
+                                )
+                            if new_data.get("version_a"):
+                                st.session_state[f"cover_data_{idx}"] = new_data
+                                st.rerun()
+
+                    with tab_b:
+                        st.text_area(label="", value=data["version_b"], height=280, key=f"cover_area_b_{idx}")
+                        st.caption("📋 Copie o texto abaixo para manter a formatação:")
+                        st.code(data["version_b"], language=None)
+                        if st.button("🔄 Regenerar", key=f"regen_b_{idx}"):
+                            with st.spinner("✍️ Regenerando..."):
+                                new_data = generate_cover_letter_v2(
+                                    st.session_state["last_analysis"], job_r,
+                                    matched_skills=results[idx].get("matched_skills") if idx < len(results) else None,
+                                    original_letter=st.session_state.get(f"cover_original_{idx}") or None,
+                                )
+                            if new_data.get("version_a"):
+                                st.session_state[f"cover_data_{idx}"] = new_data
+                                st.rerun()
+
+                    if data.get("what_improved"):
+                        st.markdown("---")
+                        st.markdown("**✅ O que foi melhorado:**")
+                        for item in data["what_improved"]:
+                            st.markdown(f"- {item}")
+
                     if st.button("🗑️ Remover", key=f"remove_cover_{idx}"):
-                        del st.session_state[f"cover_text_{idx}"]
+                        del st.session_state[f"cover_data_{idx}"]
+                        st.session_state.pop(f"cover_original_{idx}", None)
                         st.rerun()

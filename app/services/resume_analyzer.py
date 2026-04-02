@@ -203,6 +203,113 @@ Rules (follow strictly):
         return ""
 
 
+def generate_cover_letter_v2(
+    analysis: dict,
+    job: dict,
+    matched_skills: list = None,
+    original_letter: str = None,
+) -> dict:
+    """
+    Generates two cover letter versions (Professional + Bold).
+    Rewrite mode: scores the original, identifies issues, rewrites both.
+    Generate mode: creates both versions from scratch.
+    Returns dict: score, key_issues, recruiter_perspective, version_a, version_b, what_improved.
+    """
+    empty = {
+        "score": None, "key_issues": [], "recruiter_perspective": "",
+        "version_a": "", "version_b": "", "what_improved": [],
+    }
+    try:
+        client = _get_client()
+
+        if matched_skills:
+            top_skills = matched_skills[:3]
+        else:
+            candidate_set = {s["name"].lower() for s in analysis.get("skills", [])}
+            top_skills = [s for s in job.get("skills_required", []) if s.lower() in candidate_set][:3]
+        if not top_skills:
+            top_skills = [s["name"] for s in analysis.get("skills", [])[:3]]
+
+        strengths = analysis.get("strengths", [])
+        concrete_example = strengths[0] if strengths else analysis.get("profile_summary", "")
+
+        if original_letter:
+            mode_block = f"""MODE: REWRITE
+Analyze this existing cover letter, score it, identify weaknesses, then rewrite it.
+
+ORIGINAL COVER LETTER:
+\"\"\"{original_letter}\"\"\"
+
+"""
+        else:
+            mode_block = "MODE: GENERATE (create from scratch)\n\n"
+
+        prompt = f"""{mode_block}Return ONLY a valid JSON object — no other text, no markdown fences:
+{{
+  "score": <int 0-100 if REWRITE, null if GENERATE>,
+  "key_issues": [<2-4 specific weaknesses if REWRITE, else []>],
+  "recruiter_perspective": "<one honest recruiter sentence if REWRITE, else ''>",
+  "version_a": "<Professional & Polished, 150-250 words>",
+  "version_b": "<Bold & High-Performer, 150-250 words, stronger verbs, more direct>",
+  "what_improved": [<2-4 concrete improvements vs original or vs generic letters>]
+}}
+
+Candidate:
+- Name: {analysis.get('name', 'the candidate')}
+- Level: {analysis.get('seniority', 'junior')}
+- Experience: {analysis.get('experience_years', 0)} years
+- Top skills matching this role: {top_skills}
+- Concrete achievement: {concrete_example}
+- Profile summary: {analysis.get('profile_summary', '')}
+
+Job:
+- Title: {job.get('title')}
+- Company: {job.get('company')}
+- Required skills: {job.get('skills_required', [])[:6]}
+- Level: {job.get('seniority')}
+
+Writing rules (enforce strictly in BOTH versions):
+- 150-250 words each — count them
+- FORBIDDEN phrases: "excited to apply", "believe my skills align", "passion for", "team player", "I am writing to", "I am pleased to"
+- Mention "{job.get('company')}" and "{job.get('title')}" explicitly by name
+- Include this concrete example: {concrete_example}
+- Human tone — no symmetric sentence pairs, no over-polished language
+- Confident, specific call to action at the end
+- NO date, address, or formal header
+- LANGUAGE: detect from profile_summary — write in Portuguese if PT, English if EN
+- Version A: structured, professional, measured
+- Version B: direct, bold, high-performer energy — reads like someone who knows their value"""
+
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1500,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        raw = message.content[0].text.strip()
+        raw = raw.replace("```json", "").replace("```", "").strip()
+        result = json.loads(raw)
+
+        for key in ("version_a", "version_b"):
+            if not result.get(key):
+                return empty
+
+        result.setdefault("score", None)
+        result.setdefault("key_issues", [])
+        result.setdefault("recruiter_perspective", "")
+        result.setdefault("what_improved", [])
+
+        chars = len(result["version_a"]) + len(result["version_b"])
+        print(f"[Claude OK] generate_cover_letter_v2 — {chars} chars total")
+        return result
+
+    except json.JSONDecodeError as e:
+        print(f"[Claude FAIL] generate_cover_letter_v2 — JSONDecodeError: {e}")
+        return empty
+    except Exception as e:
+        print(f"[Claude FAIL] generate_cover_letter_v2 — {type(e).__name__}: {e}")
+        return empty
+
+
 def generate_job_explanation(
     analysis: dict,
     job: dict,
