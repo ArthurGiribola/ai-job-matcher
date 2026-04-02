@@ -6,11 +6,17 @@ Modelo: all-MiniLM-L6-v2 (80MB, rápido, qualidade suficiente para matching téc
 
 from sentence_transformers import SentenceTransformer
 import numpy as np
+import json
+from pathlib import Path
 
 # Carrega o modelo uma vez — fica em memória durante a sessão
 # Na primeira execução baixa ~80MB automaticamente
 MODEL_NAME = "all-MiniLM-L6-v2"
 _model = None
+
+# Cache de embeddings de vagas: {cache_key: np.ndarray}
+# cache_key = "{job_id}::{job_title}"
+_job_embedding_cache: dict[str, np.ndarray] = {}
 
 
 def get_model() -> SentenceTransformer:
@@ -49,14 +55,45 @@ def embed_job(job: dict) -> np.ndarray:
     """
     Gera embedding de uma vaga.
     Combina título + descrição + skills para contexto máximo.
+    Resultado cacheado em memória por job_id + title.
     """
+    cache_key = f"{job.get('id', '')}::{job.get('title', '')}"
+    if cache_key in _job_embedding_cache:
+        return _job_embedding_cache[cache_key]
+
     title = job.get("title", "")
     description = job.get("description", "")
     skills = ", ".join(job.get("skills_required", []))
 
     combined = f"{title}. {description}. Required skills: {skills}"
     truncated = combined[:3000]
-    return embed_text(truncated)
+    vec = embed_text(truncated)
+    _job_embedding_cache[cache_key] = vec
+    return vec
+
+
+def warmup_mock_jobs() -> None:
+    """
+    Pré-computa embeddings das vagas mock no startup.
+    Evita recalcular em toda requisição durante desenvolvimento.
+    """
+    mock_path = Path(__file__).parent.parent.parent / "data" / "mock_jobs.json"
+    if not mock_path.exists():
+        return
+    try:
+        with open(mock_path, "r", encoding="utf-8") as f:
+            jobs = json.load(f)
+        get_model()  # garante que o modelo está carregado antes do loop
+        cached = 0
+        for job in jobs:
+            cache_key = f"{job.get('id', '')}::{job.get('title', '')}"
+            if cache_key not in _job_embedding_cache:
+                embed_job(job)
+                cached += 1
+        if cached:
+            print(f"[Embedder] Warmup: {cached} mock job embeddings pré-computados.")
+    except Exception as e:
+        print(f"[Embedder] Warmup falhou: {e}")
 def cosine_similarity(vec_a: np.ndarray, vec_b: np.ndarray) -> float:
     """
     Calcula cosine similarity entre dois vetores.

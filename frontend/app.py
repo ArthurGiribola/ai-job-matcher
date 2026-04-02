@@ -9,6 +9,9 @@ from app.services.resume_parser import extract_text_from_pdf
 from app.services.resume_analyzer import analyze_resume, get_skill_names, generate_job_explanation, generate_cover_letter
 from app.services.job_collector import get_jobs, SUPPORTED_COUNTRIES
 from app.services.scoring_engine import rank_jobs, get_top_missing_skills
+from app.services.embedder import warmup_mock_jobs
+
+warmup_mock_jobs()
 
 SKILL_RESOURCES = {
     "Docker": "https://docs.docker.com/get-started/",
