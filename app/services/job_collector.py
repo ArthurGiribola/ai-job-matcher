@@ -122,8 +122,13 @@ def normalize_job(raw: dict, country_code: str = "gb") -> dict:
     url = raw.get("redirect_url", "")
     salary_min = int(raw.get("salary_min") or 0)
     salary_max = int(raw.get("salary_max") or 0)
-    text = f"{title} {description}".lower()
-    is_remote = any(w in text for w in ["remote", "remoto", "home office", "anywhere", "hybrid"])
+    location_area = " ".join(raw.get("location", {}).get("area", [])).lower()
+    text = f"{title} {description} {location} {location_area}".lower()
+    is_remote = any(w in text for w in [
+        "remote", "remoto", "home office", "anywhere", "hybrid",
+        "work from home", "wfh", "fully remote", "100% remote",
+        "distributed", "telecommut",
+    ])
     try:
         posted_at = datetime.fromisoformat(raw.get("created", "")[:10]).strftime("%Y-%m-%d")
     except Exception:
