@@ -66,14 +66,22 @@ tests/
 - Supabase integrado — histórico de aplicações persiste entre sessões
 - Reescrita de currículo com Claude — 5 sugestões específicas por vaga
 - Botão "Apliquei para essa vaga" + histórico na sidebar
+- Sugestões de melhoria de currículo por vaga
 
 ## Próximo passo — Phase 6 continuação
 - Validação de qualidade do currículo antes da análise
-- Dashboard de progresso de carreira
 
-## Fases futuras
-- Phase 7: Frontend React
-- Phase 8: Production readiness (monitoring, CI/CD, Redis cache)
+## Phase 7 — Geração de Currículo Profissional
+- Claude gera currículo novo completo baseado no original + vaga específica
+- Output em Markdown formatado profissionalmente
+- Download em PDF
+- Inspiração: cvpunch.ai
+
+## Phase 8 — Production Readiness
+- Autenticação de usuários
+- Dashboard de progresso de carreira
+- Alertas de novas vagas compatíveis
+- Frontend React
 
 ## Problemas conhecidos
 - Histórico de aplicações some ao fechar o browser (session_state não persiste)
