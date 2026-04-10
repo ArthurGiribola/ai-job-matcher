@@ -2,6 +2,7 @@ import streamlit as st
 import tempfile
 import os
 import sys
+from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -99,6 +100,9 @@ def format_salary(salary_min, salary_max, country_code, source):
     return f"{currency} {salary_min:,.0f}+"
 
 
+if "applied_jobs" not in st.session_state:
+    st.session_state.applied_jobs = []
+
 st.set_page_config(page_title="AI Job Matcher", page_icon="🎯", layout="wide")
 
 st.title("🎯 AI Job Matcher")
@@ -114,6 +118,21 @@ with st.sidebar:
     remote_only = st.checkbox("Apenas vagas remotas", value=False)
     min_score = st.slider("Score mínimo (%)", 0, 100, 40) / 100
     limit = st.slider("Número de vagas", 5, 20, 10)
+
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("### 📋 Vagas que apliquei")
+    if st.session_state.get("applied_jobs"):
+        for app_job in st.session_state.applied_jobs:
+            st.sidebar.markdown(
+                f"**{app_job['title']}**  \n"
+                f"{app_job['company']} | {app_job['score']} match  \n"
+                f"🎯 {app_job['hiring_prob']} prob. | {app_job['applied_at']}"
+            )
+        if st.sidebar.button("🗑️ Limpar histórico"):
+            st.session_state.applied_jobs = []
+            st.rerun()
+    else:
+        st.sidebar.caption("Nenhuma aplicação ainda.")
 
 st.markdown("---")
 
@@ -370,6 +389,24 @@ if "last_results" in st.session_state:
                     st.link_button("🔗 Ver vaga completa", job["url"])
                 elif job.get("source") == "mock":
                     st.caption("🔒 Vaga demonstrativa — sem link disponível")
+
+                # Botão de aplicação
+                job_id = job.get("id", f"job_{i}")
+                already_applied = any(j["id"] == job_id for j in st.session_state.applied_jobs)
+
+                if already_applied:
+                    st.success("✅ Você já aplicou para essa vaga!")
+                else:
+                    if st.button("🚀 Apliquei para essa vaga", key=f"apply_{i}"):
+                        st.session_state.applied_jobs.append({
+                            "id": job_id,
+                            "title": job.get("title"),
+                            "company": job.get("company"),
+                            "score": result.get("score_percent"),
+                            "hiring_prob": f"{int(result.get('hiring_probability', 0) * 100)}%",
+                            "applied_at": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                        })
+                        st.rerun()
 
                 original_input = st.text_area(
                     "Cole sua carta atual aqui (opcional — para análise e reescrita):",
