@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.services.resume_parser import extract_text_from_pdf
 from app.services.resume_analyzer import analyze_resume, get_skill_names, generate_job_explanation, generate_cover_letter, generate_cover_letter_v2
 from app.services.job_collector import get_jobs, SUPPORTED_COUNTRIES
+from app.services.database import save_application, load_applications, get_or_create_session_id
 
 @st.cache_data(ttl=1800, show_spinner=False)
 def cached_get_jobs(skills_tuple, limit, country_code, city):
@@ -101,7 +102,7 @@ def format_salary(salary_min, salary_max, country_code, source):
 
 
 if "applied_jobs" not in st.session_state:
-    st.session_state.applied_jobs = []
+    st.session_state.applied_jobs = load_applications()
 
 st.set_page_config(page_title="AI Job Matcher", page_icon="🎯", layout="wide")
 
@@ -123,8 +124,9 @@ with st.sidebar:
     st.sidebar.markdown("### 📋 Vagas que apliquei")
     if st.session_state.get("applied_jobs"):
         for app_job in st.session_state.applied_jobs:
+            title = app_job.get("job_title") or app_job.get("title", "")
             st.sidebar.markdown(
-                f"**{app_job['title']}**  \n"
+                f"**{title}**  \n"
                 f"{app_job['company']} | {app_job['score']} match  \n"
                 f"🎯 {app_job['hiring_prob']} prob. | {app_job['applied_at']}"
             )
@@ -392,20 +394,28 @@ if "last_results" in st.session_state:
 
                 # Botão de aplicação
                 job_id = job.get("id", f"job_{i}")
-                already_applied = any(j["id"] == job_id for j in st.session_state.applied_jobs)
+                already_applied = any(
+                    j.get("job_id", j.get("id")) == job_id
+                    for j in st.session_state.applied_jobs
+                )
 
                 if already_applied:
                     st.success("✅ Você já aplicou para essa vaga!")
                 else:
                     if st.button("🚀 Apliquei para essa vaga", key=f"apply_{i}"):
-                        st.session_state.applied_jobs.append({
-                            "id": job_id,
-                            "title": job.get("title"),
-                            "company": job.get("company"),
-                            "score": result.get("score_percent"),
-                            "hiring_prob": f"{int(result.get('hiring_probability', 0) * 100)}%",
-                            "applied_at": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                        })
+                        if save_application(job, result):
+                            st.session_state.applied_jobs = load_applications()
+                        else:
+                            st.session_state.applied_jobs.append({
+                                "id": job_id,
+                                "job_id": job_id,
+                                "job_title": job.get("title"),
+                                "title": job.get("title"),
+                                "company": job.get("company"),
+                                "score": result.get("score_percent"),
+                                "hiring_prob": f"{int(result.get('hiring_probability', 0) * 100)}%",
+                                "applied_at": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                            })
                         st.rerun()
 
                 original_input = st.text_area(
