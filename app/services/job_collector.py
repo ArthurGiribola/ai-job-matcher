@@ -237,6 +237,30 @@ def fetch_remotive_jobs(
         return []
 
 
+def enrich_jobs_with_claude(jobs: list[dict], max_enrich: int = 10) -> list[dict]:
+    """
+    Enriquece skills das vagas usando Claude Haiku.
+    Só processa vagas com descrição longa e poucas skills detectadas.
+    Limita a max_enrich vagas para controlar custo.
+    """
+    enriched = 0
+    for job in jobs:
+        if enriched >= max_enrich:
+            break
+        skills = job.get("skills_required", [])
+        description = job.get("description", "")
+        if len(description) > 200 and len(skills) < 3:
+            new_skills = extract_skills_with_ai(job.get("title", ""), description)
+            if new_skills:
+                job["skills_required"] = new_skills
+                job["skills_enriched"] = True
+                enriched += 1
+                print(f"[Enrich] {job.get('title', '')[:40]} → {new_skills[:5]}")
+
+    print(f"[Enrich] {enriched} vagas enriquecidas com Claude")
+    return jobs
+
+
 def get_jobs(
     candidate_skills: list[str] = None,
     limit: int = 20,
@@ -298,6 +322,12 @@ def get_jobs(
         if key not in seen:
             seen.add(key)
             unique.append(job)
+
+    # Enriquece skills das vagas com Claude (só vagas com poucas skills)
+    try:
+        unique = enrich_jobs_with_claude(unique, max_enrich=8)
+    except Exception as e:
+        print(f"[Enrich] Falhou: {e}")
 
     cache_path = _DATA_DIR / f"jobs_cache_{country}.json"
     cache_meta_path = _DATA_DIR / f"jobs_cache_{country}_meta.json"

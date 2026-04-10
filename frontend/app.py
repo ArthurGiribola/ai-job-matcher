@@ -350,6 +350,8 @@ if "last_results" in st.session_state:
                     st.markdown("**✅ Você tem:** " + "  ".join([f"`{s}`" for s in result["matched_skills"]]))
                 if result["missing_skills"]:
                     st.markdown("**❌ Faltam:** " + "  ".join([f"`{s}`" for s in result["missing_skills"]]))
+                if job.get("skills_enriched"):
+                    st.caption("✨ Skills extraídas por IA")
 
                 hiring_pct = int(result.get("hiring_probability", 0) * 100)
                 hp_color = "#44ff44" if hiring_pct >= 60 else "#ffaa00" if hiring_pct >= 40 else "#ff4444"
