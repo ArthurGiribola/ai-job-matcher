@@ -31,10 +31,14 @@ tests/
 - Phase 2 DONE: Extração estruturada com Claude Haiku (skills com níveis, seniority, red flags)
 - Phase 3 DONE: Hiring probability (Logistic Regression) — exibe "Probabilidade de chamada: X%"
 - Phase 4 DONE: Explanation engine — Claude gera conselho personalizado para top 3 vagas
+- Phase 5 DONE:
+  - Cache persistente com TTL de 1 hora por país (jobs_cache_{country}_meta.json)
+  - st.cache_data com TTL de 30 minutos no Streamlit (cached_get_jobs)
+  - Enriquecimento de vagas com Claude Haiku (enrich_jobs_with_claude, max 8/busca)
+  - Botão "Apliquei para essa vaga" + histórico na sidebar (session_state)
 - Cover letter gerado pelo Claude para cada vaga
 - Scoring engine: 40% semantic + 20% seniority + 15% recency + 15% filters + 10% bonus
-- Remotive API integrada como terceira fonte de vagas (gratuita, sem chave)
-- Cache de vagas separado por país (jobs_cache_{country}.json)
+- 3 fontes de vagas: Adzuna + Remotive + mock fallback
 - Lazy-loading de credenciais para funcionar no Streamlit Cloud (st.secrets)
 - Cartão visual de perfil após upload do PDF
 - Progress steps durante análise (em vez de spinner único)
@@ -45,6 +49,7 @@ tests/
 - Links inválidos/mock ocultados corretamente
 - Descrição das vagas aumentada de 500 para 2000 chars
 - Skills GCP, Azure, LLM, TensorFlow, PyTorch adicionadas ao SKILL_RESOURCES
+- 31 testes passando
 
 ## Deploy
 - URL: https://ai-job-matcher-fwyk2y7xr5aedyhsckxjuw.streamlit.app
@@ -57,21 +62,20 @@ tests/
 - Claude analyzer tem fallback para parser básico se API indisponível
 - Credenciais lidas lazily dentro das funções (não no topo do módulo) para compatibilidade com Streamlit Cloud
 
-## Próximo passo — Phase 5
-- Persistent cache (Redis ou banco simples) — cache some entre reboots no Streamlit Cloud
-- Logging estruturado — saber quando Claude falha em produção
-- Explanation engine em português consistente
+## Próximo passo — Phase 6
+- Autenticação de usuários (Supabase ou Auth0)
+- Histórico persistente entre sessões (hoje some ao fechar)
+- Alertas de novas vagas compatíveis
 
 ## Fases futuras
-- Phase 6: Autenticação + perfis de usuário + histórico de buscas
 - Phase 7: Frontend React
 - Phase 8: Production readiness (monitoring, CI/CD, Redis cache)
 
 ## Problemas conhecidos
-- Cache não persiste entre reboots do Streamlit Cloud
+- Histórico de aplicações some ao fechar o browser (session_state não persiste)
 
 ## Testes
-- 23 testes passando em tests/
+- 31 testes passando em tests/
 - Rodar com: python -m pytest tests/ -q
 
 ## Regras do projeto
