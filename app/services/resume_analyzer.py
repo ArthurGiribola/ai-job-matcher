@@ -414,3 +414,64 @@ Regras:
     except Exception as e:
         print(f"[Claude FAIL] suggest_resume_improvements — {type(e).__name__}: {e}")
         return ""
+
+
+def validate_resume_quality(resume_text: str) -> dict:
+    """
+    Valida a qualidade do currículo antes da análise.
+    Retorna score de qualidade e lista de problemas encontrados.
+    """
+    import re
+
+    warnings = []
+    score = 100
+
+    # Verifica tamanho
+    word_count = len(resume_text.split())
+    if word_count < 100:
+        warnings.append("⚠️ Currículo muito curto — adicione mais detalhes sobre experiências e projetos")
+        score -= 30
+    elif word_count < 200:
+        warnings.append("⚠️ Currículo curto — considere expandir suas experiências")
+        score -= 15
+
+    # Verifica contato
+    if not re.search(r'[\w.+-]+@[\w-]+\.[a-zA-Z]+', resume_text):
+        warnings.append("⚠️ Email não encontrado — adicione seu contato")
+        score -= 10
+    if not re.search(r'linkedin\.com', resume_text, re.I):
+        warnings.append("💡 LinkedIn não encontrado — adicione seu perfil")
+        score -= 5
+
+    # Verifica seções importantes
+    text_lower = resume_text.lower()
+    if not any(w in text_lower for w in ['experience', 'experiência', 'trabalho', 'work']):
+        warnings.append("⚠️ Seção de experiência não encontrada")
+        score -= 20
+    if not any(w in text_lower for w in ['project', 'projeto', 'portfolio']):
+        warnings.append("⚠️ Seção de projetos não encontrada — projetos são essenciais para tech")
+        score -= 15
+    if not any(w in text_lower for w in ['education', 'educação', 'university', 'faculdade', 'curso']):
+        warnings.append("⚠️ Seção de educação não encontrada")
+        score -= 10
+
+    # Verifica skills técnicas
+    tech_keywords = ['python', 'java', 'javascript', 'sql', 'git', 'docker', 'aws', 'react', 'node']
+    found_tech = [k for k in tech_keywords if k in text_lower]
+    if len(found_tech) < 2:
+        warnings.append("⚠️ Poucas skills técnicas identificadas — liste suas habilidades claramente")
+        score -= 10
+
+    # Verifica métricas
+    if not re.search(r'\d+%|\d+ anos|\d+ months|\d+ projetos', resume_text, re.I):
+        warnings.append("💡 Adicione métricas aos seus projetos (ex: 'reduziu tempo em 30%', '5 projetos entregues')")
+        score -= 5
+
+    quality_label = "🟢 Excelente" if score >= 80 else "🟡 Bom" if score >= 60 else "🔴 Precisa melhorar"
+
+    return {
+        "score": max(0, score),
+        "label": quality_label,
+        "warnings": warnings,
+        "word_count": word_count,
+    }

@@ -7,7 +7,7 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.services.resume_parser import extract_text_from_pdf
-from app.services.resume_analyzer import analyze_resume, get_skill_names, generate_job_explanation, generate_cover_letter, generate_cover_letter_v2, suggest_resume_improvements
+from app.services.resume_analyzer import analyze_resume, get_skill_names, generate_job_explanation, generate_cover_letter, generate_cover_letter_v2, suggest_resume_improvements, validate_resume_quality
 from app.services.job_collector import get_jobs, SUPPORTED_COUNTRIES
 from app.services.database import save_application, load_applications, get_or_create_session_id
 
@@ -201,6 +201,16 @@ if analyze_btn:
 
             update_progress("Lendo seu currículo...", "🔍")
             time.sleep(0.5)
+
+            # Valida qualidade do currículo
+            quality = validate_resume_quality(final_text)
+            if quality["warnings"]:
+                with st.expander(f"📋 Qualidade do currículo: {quality['label']} ({quality['score']}/100)", expanded=quality["score"] < 60):
+                    st.progress(quality["score"] / 100)
+                    for w in quality["warnings"]:
+                        st.markdown(w)
+                    st.caption(f"📝 {quality['word_count']} palavras no currículo")
+
             update_progress("Claude está analisando seu perfil...", "🤖")
 
             analysis = analyze_resume(final_text)
