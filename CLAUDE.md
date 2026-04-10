@@ -62,10 +62,14 @@ tests/
 - Claude analyzer tem fallback para parser básico se API indisponível
 - Credenciais lidas lazily dentro das funções (não no topo do módulo) para compatibilidade com Streamlit Cloud
 
-## Próximo passo — Phase 6
-- Autenticação de usuários (Supabase ou Auth0)
-- Histórico persistente entre sessões (hoje some ao fechar)
-- Alertas de novas vagas compatíveis
+## Phase 6 (em andamento)
+- Supabase integrado — histórico de aplicações persiste entre sessões
+- Reescrita de currículo com Claude — 5 sugestões específicas por vaga
+- Botão "Apliquei para essa vaga" + histórico na sidebar
+
+## Próximo passo — Phase 6 continuação
+- Validação de qualidade do currículo antes da análise
+- Dashboard de progresso de carreira
 
 ## Fases futuras
 - Phase 7: Frontend React
