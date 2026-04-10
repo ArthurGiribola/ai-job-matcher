@@ -356,3 +356,61 @@ Be direct and actionable. No fluff."""
     except Exception as e:
         print(f"[Claude FAIL] generate_job_explanation — {type(e).__name__}: {e}")
         return ""
+
+
+def suggest_resume_improvements(
+    analysis: dict,
+    job: dict,
+    resume_text: str,
+) -> str:
+    """
+    Analisa o currículo vs a vaga e sugere melhorias específicas.
+    Retorna sugestões em português do Brasil.
+    """
+    try:
+        client = _get_client()
+        prompt = f"""Você é um coach de carreira especialista em recrutamento técnico.
+
+Analise o currículo abaixo comparado com a vaga e gere sugestões ESPECÍFICAS e ACIONÁVEIS de melhoria.
+
+Perfil extraído do currículo:
+- Nível: {analysis.get('seniority')}
+- Skills: {[s['name'] for s in analysis.get('skills', [])[:10]]}
+- Complexidade dos projetos: {analysis.get('project_complexity')}
+- Red flags: {analysis.get('red_flags', [])}
+- Resumo: {analysis.get('profile_summary', '')}
+
+Vaga:
+- Cargo: {job.get('title')} em {job.get('company')}
+- Skills exigidas: {job.get('skills_required', [])[:10]}
+- Nível: {job.get('seniority')}
+- Skills que o candidato não tem: {job.get('skills_required', [])}
+
+Trecho do currículo:
+{resume_text[:2000]}
+
+Gere exatamente 5 sugestões específicas no formato:
+1. [SEÇÃO] Sugestão específica e acionável
+2. [SEÇÃO] Sugestão específica e acionável
+...
+
+Onde SEÇÃO pode ser: EXPERIÊNCIA, PROJETOS, SKILLS, RESUMO, EDUCAÇÃO
+
+Regras:
+- Seja específico — não diga "adicione mais detalhes", diga EXATAMENTE o que adicionar
+- Base tudo no currículo real — não invente experiências
+- Foque nas skills que a vaga pede e o candidato tem mas não destacou
+- SEMPRE em português do Brasil
+- Máximo 2 linhas por sugestão"""
+
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=600,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        result = message.content[0].text.strip()
+        print(f"[Claude OK] suggest_resume_improvements — {len(result)} chars")
+        return result
+    except Exception as e:
+        print(f"[Claude FAIL] suggest_resume_improvements — {type(e).__name__}: {e}")
+        return ""

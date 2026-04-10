@@ -7,7 +7,7 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.services.resume_parser import extract_text_from_pdf
-from app.services.resume_analyzer import analyze_resume, get_skill_names, generate_job_explanation, generate_cover_letter, generate_cover_letter_v2
+from app.services.resume_analyzer import analyze_resume, get_skill_names, generate_job_explanation, generate_cover_letter, generate_cover_letter_v2, suggest_resume_improvements
 from app.services.job_collector import get_jobs, SUPPORTED_COUNTRIES
 from app.services.database import save_application, load_applications, get_or_create_session_id
 
@@ -437,6 +437,18 @@ if "last_results" in st.session_state:
                     else:
                         st.warning("Não foi possível gerar o cover letter. Tente novamente.")
 
+                # Botão de sugestões de melhoria
+                improve_key = f"improve_text_{i}"
+                if st.button("✍️ Melhorar currículo para essa vaga", key=f"improve_btn_{i}"):
+                    with st.spinner("🔍 Claude analisando seu currículo vs a vaga..."):
+                        suggestions = suggest_resume_improvements(analysis, job, final_text)
+                    if suggestions:
+                        st.session_state[improve_key] = suggestions
+                        st.session_state["improve_job_index"] = i
+                        st.session_state["improve_job_title"] = job.get("title", "")
+                    else:
+                        st.warning("Não foi possível gerar sugestões. Tente novamente.")
+
     # ── Section 5: Cover Letters (only if any exist) ─────────────────────────
     cover_indices = sorted(
         [int(k.split("_")[-1]) for k in st.session_state if k.startswith("cover_data_")]
@@ -505,3 +517,17 @@ if "last_results" in st.session_state:
                     del st.session_state[f"cover_data_{idx}"]
                     st.session_state.pop(f"cover_original_{idx}", None)
                     st.rerun()
+
+    # ── Section 6: Sugestões de melhoria de currículo ────────────────────────
+    active_improve = st.session_state.get("improve_job_index")
+    if active_improve is not None:
+        improve_text = st.session_state.get(f"improve_text_{active_improve}", "")
+        improve_title = st.session_state.get("improve_job_title", "")
+        if improve_text:
+            st.markdown("---")
+            st.markdown(f"**✍️ Sugestões para melhorar seu currículo para: {improve_title}**")
+            st.markdown(improve_text)
+            st.caption("💡 Aplique essas melhorias no seu currículo antes de se candidatar!")
+            if st.button("🗑️ Fechar sugestões", key="close_improve"):
+                del st.session_state["improve_job_index"]
+                st.rerun()
