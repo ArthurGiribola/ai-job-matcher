@@ -8,6 +8,16 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.services.resume_parser import extract_text_from_pdf
 from app.services.resume_analyzer import analyze_resume, get_skill_names, generate_job_explanation, generate_cover_letter, generate_cover_letter_v2
 from app.services.job_collector import get_jobs, SUPPORTED_COUNTRIES
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def cached_get_jobs(skills_tuple, limit, country_code, city):
+    """Wrapper cacheado para get_jobs — evita rebuscar a cada interação."""
+    return get_jobs(
+        candidate_skills=list(skills_tuple),
+        limit=limit,
+        country=country_code,
+        location=city,
+    )
 from app.services.scoring_engine import rank_jobs, get_top_missing_skills
 from app.services.embedder import warmup_mock_jobs
 
@@ -182,11 +192,11 @@ if analyze_btn:
             }
 
             update_progress("Buscando vagas compatíveis no mundo...", "🌍")
-            jobs = get_jobs(
-                candidate_skills=profile["skills"],
+            jobs = cached_get_jobs(
+                skills_tuple=tuple(profile["skills"]),
                 limit=40,
-                country=country_code,
-                location=city.strip() if city else "",
+                country_code=country_code,
+                city=city.strip() if city else "",
             )
 
             update_progress("Calculando compatibilidade semântica...", "📊")

@@ -26,4 +26,5 @@ __pycache__/
 *.pyc
 *.pyo
 data/jobs_cache*.json
+data/jobs_cache*_meta.json
 .claude/settings.local.json

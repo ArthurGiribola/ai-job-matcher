@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import requests
 from datetime import datetime
 from pathlib import Path
@@ -242,6 +243,23 @@ def get_jobs(
     country: str = "gb",
     location: str = "",
 ) -> list[dict]:
+    cache_path = _DATA_DIR / f"jobs_cache_{country}.json"
+    cache_meta_path = _DATA_DIR / f"jobs_cache_{country}_meta.json"
+
+    if cache_path.exists() and cache_meta_path.exists():
+        try:
+            with open(cache_meta_path, "r") as f:
+                meta = json.load(f)
+            age_seconds = time.time() - meta.get("timestamp", 0)
+            if age_seconds < 3600:
+                with open(cache_path, "r", encoding="utf-8") as f:
+                    cached = json.load(f)
+                if cached:
+                    print(f"Cache hit [{country}] — {len(cached)} vagas, {int(age_seconds)}s atrás")
+                    return cached[:limit]
+        except Exception:
+            pass
+
     if candidate_skills:
         query = " ".join(candidate_skills[:3])
     else:
@@ -282,8 +300,11 @@ def get_jobs(
             unique.append(job)
 
     cache_path = _DATA_DIR / f"jobs_cache_{country}.json"
+    cache_meta_path = _DATA_DIR / f"jobs_cache_{country}_meta.json"
     cache_path.parent.mkdir(exist_ok=True)
     with open(cache_path, "w", encoding="utf-8") as f:
         json.dump(unique[:limit], f, ensure_ascii=False, indent=2)
+    with open(cache_meta_path, "w") as f:
+        json.dump({"timestamp": time.time(), "count": len(unique)}, f)
 
     return unique[:limit]
