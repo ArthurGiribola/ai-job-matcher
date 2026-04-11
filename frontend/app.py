@@ -106,7 +106,7 @@ def format_salary(salary_min, salary_max, country_code, source):
     return f"{currency} {salary_min:,.0f}+"
 
 
-if "applied_jobs" not in st.session_state:
+if "applied_jobs" not in st.session_state or not st.session_state.applied_jobs:
     st.session_state.applied_jobs = load_applications()
 if "compare_jobs" not in st.session_state:
     st.session_state.compare_jobs = []
