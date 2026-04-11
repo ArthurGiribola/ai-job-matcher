@@ -71,17 +71,17 @@ tests/
 ## Próximo passo — Phase 6 continuação
 - Validação de qualidade do currículo antes da análise
 
-## Phase 7 — Geração de Currículo Profissional
-- Claude gera currículo novo completo baseado no original + vaga específica
-- Output em Markdown formatado profissionalmente
-- Download em PDF
-- Inspiração: cvpunch.ai
+## Phase 7 DONE — Geração de Currículo Profissional
+- generate_full_resume() — gera currículo novo completo em Markdown
+- Versão genérica: botão "✨ Gerar currículo profissional"
+- Versão otimizada por vaga: botão "🎯 Gerar currículo para essa vaga"
+- Resultado renderizado + área copiável
 
-## Phase 8 — Production Readiness
+## Próximo passo — Phase 8 (ideias)
+- Simulador de entrevista com Claude
+- Score de mercado (quanto você vale em R$, £, $)
 - Autenticação de usuários
 - Dashboard de progresso de carreira
-- Alertas de novas vagas compatíveis
-- Frontend React
 
 ## Problemas conhecidos
 - Histórico de aplicações some ao fechar o browser (session_state não persiste)
