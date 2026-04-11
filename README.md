@@ -1,154 +1,154 @@
 # 🎯 AI Job Matcher
 
-AI-powered system that analyzes resumes with Claude AI, matches candidates with real job opportunities using semantic embeddings, and identifies skill gaps — built with Python, FastAPI, Claude Haiku, sentence-transformers and Streamlit.
+> Plataforma inteligente de matching de vagas com análise de currículo por IA, coaching de carreira personalizado e ferramentas profissionais powered by Claude AI.
 
-## 🚀 Live Demo
+![Python](https://img.shields.io/badge/Python-3.11+-blue)
+![Streamlit](https://img.shields.io/badge/Streamlit-1.56-red)
+![Claude AI](https://img.shields.io/badge/Claude-Haiku-orange)
+![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-green)
+![Deploy](https://img.shields.io/badge/Deploy-Streamlit%20Cloud-brightgreen)
+
+## 🔗 Demo ao vivo
 **[ai-job-matcher-fwyk2y7xr5aedyhsckxjuw.streamlit.app](https://ai-job-matcher-fwyk2y7xr5aedyhsckxjuw.streamlit.app)**
 
-Upload your resume (PDF or text) → Claude AI extracts your profile → Get semantically ranked job matches → See exactly what skills you're missing
+---
+
+## ✨ Features
+
+### 🤖 Análise de Currículo com IA
+- Extração estruturada de skills, nível de senioridade e red flags usando **Claude Haiku**
+- Validação de qualidade do currículo com score 0-100
+- Embeddings semânticos com **sentence-transformers** para matching preciso
+
+### 💼 Matching de Vagas
+- **5 fontes de vagas**: Adzuna, Remotive, Reed, Jooble, The Muse
+- Scoring ponderado: semântico + senioridade + recência + filtros
+- Probabilidade de contratação via **Logistic Regression**
+- Enriquecimento de vagas com Claude para extração de skills reais
+- Detector de red flags nas vagas
+
+### 📝 Ferramentas de Carreira
+- **Cover Letter** personalizado por vaga
+- **Sugestões de melhoria** do currículo por vaga
+- **Geração de currículo profissional** completo
+- **Tradução para inglês** profissional e ATS-friendly
+- **Score de mercado** com faixas salariais em R$, £ e $
+- **Comparador de vagas** lado a lado
+
+### 📊 Histórico e Persistência
+- Botão "Apliquei para essa vaga" com histórico na sidebar
+- Persistência via **Supabase** (PostgreSQL)
+- Cache de vagas com TTL de 1 hora
 
 ---
 
-## 🧠 What it does
+## 🛠️ Stack
 
-Most job platforms show you jobs. This system tells you **why you match or don't** — and what to do about it.
-
-- 📄 **Resume Analysis** — Claude Haiku extracts skills with proficiency levels, seniority, red flags and project complexity
-- 🎯 **Semantic Matching** — Ranks jobs using sentence-transformers embeddings (all-MiniLM-L6-v2), cached in memory for performance
-- 📊 **Skill Gap Detection** — Shows exactly what's missing for your top matches with learning resources
-- 🌍 **Global Job Search** — Real jobs from Adzuna API (20+ countries) + Remotive API (global remote, no key needed)
-- 🤖 **AI Profile Card** — Visual profile card with Claude's honest assessment of your experience level
-- 🎯 **Hiring Probability** — Logistic Regression model predicts call-back likelihood (0–100%) per job
-- 💡 **Explanation Engine** — Claude generates a personalized PT-BR career coaching tip for your top 3 matches
-- ✉️ **Cover Letter Generator** — Claude writes a tailored cover letter for any job in one click
-
----
-
-## 📊 Scoring Algorithm
-
-The match score is calculated across 5 dimensions:
-
-| Dimension | Weight | Description |
-|-----------|--------|-------------|
-| Semantic similarity | 40% | Cosine similarity between resume and job embeddings (all-MiniLM-L6-v2) |
-| Seniority match | 20% | Penalizes over/under-qualified matches |
-| Job recency | 15% | Exponential decay for older postings |
-| Filter adherence | 15% | Remote, location, salary preferences |
-| High-value skill bonus | 10% | AWS, ML, Docker, LLM, Kubernetes, etc. |
+| Camada | Tecnologia |
+|--------|-----------|
+| Frontend | Streamlit |
+| AI/LLM | Anthropic Claude Haiku |
+| Embeddings | sentence-transformers (all-MiniLM-L6-v2) |
+| ML | scikit-learn (Logistic Regression) |
+| Backend | FastAPI |
+| Database | Supabase (PostgreSQL) |
+| Deploy | Streamlit Cloud |
+| Vagas | Adzuna, Remotive, Reed, Jooble, The Muse |
 
 ---
 
-## 🏗️ Architecture
-```
-User (PDF/Text)
-      ↓
-Streamlit Frontend
-      ↓
-┌──────────────────────────────────────────┐
-│  ResumeAnalyzer (Claude Haiku)           │  ← Skills, seniority, red flags
-│  Embedder (all-MiniLM-L6-v2 + cache)    │  ← Semantic vectors, in-memory cache
-│  JobCollector (Adzuna + Remotive APIs)   │  ← Real global + remote jobs
-│  ScoringEngine (cosine similarity)       │  ← Weighted ranking
-│  HiringPredictor (Logistic Regression)   │  ← Call-back probability
-└──────────────────────────────────────────┘
-      ↓
-Ranked jobs + hiring probability + Claude explanation + cover letter
-```
+## 🚀 Como rodar localmente
 
----
-
-## ⚙️ Tech Stack
-
-- **Backend:** Python 3.11+, FastAPI, Pydantic, Uvicorn
-- **AI Layer:** Claude Haiku (Anthropic), sentence-transformers (all-MiniLM-L6-v2), scikit-learn (Logistic Regression)
-- **Job Data:** Adzuna API (20+ countries), Remotive API (global remote, free)
-- **Frontend:** Streamlit
-- **Deploy:** Streamlit Cloud
-
----
-
-## 🚀 Quick Start
+### 1. Clone o repositório
 ```bash
-# 1. Clone the repository
 git clone https://github.com/ArthurGiribola/ai-job-matcher.git
 cd ai-job-matcher
+```
 
-# 2. Create virtual environment
+### 2. Crie o ambiente virtual e instale as dependências
+```bash
 python -m venv venv
 venv\Scripts\activate  # Windows
-source venv/bin/activate  # Mac/Linux
-
-# 3. Install dependencies
 pip install -r requirements.txt
+```
 
-# 4. Configure environment variables
-cp .streamlit/secrets.toml.example .streamlit/secrets.toml
-# Edit .streamlit/secrets.toml and add your keys:
-# ANTHROPIC_API_KEY = "sk-ant-..."
-# ADZUNA_APP_ID = "your_id"
-# ADZUNA_APP_KEY = "your_key"
+### 3. Configure as variáveis de ambiente
+Crie um arquivo `.env` na raiz:
+```env
+ANTHROPIC_API_KEY=sua_chave_aqui
+ADZUNA_APP_ID=seu_app_id
+ADZUNA_APP_KEY=sua_app_key
+REED_API_KEY=sua_chave_reed
+JOOBLE_API_KEY=sua_chave_jooble
+SUPABASE_URL=sua_url_supabase
+SUPABASE_ANON_KEY=sua_chave_supabase
+```
 
-# 5. Start the interface
+### 4. Inicie o app
+```bash
+# Windows — dois cliques no start.bat
+# ou
 streamlit run frontend/app.py
 ```
 
-Open `http://localhost:8501` and upload your resume.
-
 ---
 
-## 📁 Project Structure
+## 📁 Estrutura do projeto
 ```
 ai-job-matcher/
 ├── app/
-│   ├── main.py                    # FastAPI app + endpoints
 │   └── services/
-│       ├── embedder.py            # sentence-transformers + in-memory cache
-│       ├── resume_analyzer.py     # Claude Haiku: analysis, explanation, cover letter
-│       ├── resume_parser.py       # PDF parser + basic skill extractor
-│       ├── job_collector.py       # Adzuna + Remotive API integration
-│       ├── scoring_engine.py      # Semantic scoring algorithm
-│       └── hiring_predictor.py    # Logistic Regression hiring probability
-├── data/
-│   └── mock_jobs.json             # Brazilian mock jobs fallback
+│       ├── resume_analyzer.py    # Claude AI — análise, cover letter, sugestões
+│       ├── job_collector.py      # 5 fontes de vagas + cache + enriquecimento
+│       ├── scoring_engine.py     # Scoring ponderado + embeddings semânticos
+│       ├── hiring_predictor.py   # Probabilidade de contratação (ML)
+│       ├── embedder.py           # sentence-transformers
+│       ├── resume_parser.py      # Extração de texto de PDF
+│       └── database.py           # Supabase CRUD
 ├── frontend/
-│   └── app.py                     # Streamlit interface (standalone)
-├── tests/                         # 25 passing tests
-├── .streamlit/
-│   └── secrets.toml.example       # Environment variables template
-├── CLAUDE.md                      # Project context for Claude Code
-└── README.md
+│   └── app.py                    # Streamlit UI
+├── tests/                        # 31 testes
+├── data/
+│   └── mock_jobs.json            # Fallback de vagas
+├── start.bat                     # Inicialização local (Windows)
+└── requirements.txt
 ```
+
+---
+
+## 🧪 Testes
+
+```bash
+python -m pytest tests/ -q
+# 31 passed
+```
+
+---
+
+## 📸 Screenshots
+
+> Em breve
 
 ---
 
 ## 🗺️ Roadmap
 
-- ✅ Resume parser (PDF + text)
-- ✅ Claude AI structured extraction (skills, seniority, red flags)
-- ✅ Semantic embeddings matching (all-MiniLM-L6-v2 + in-memory cache)
-- ✅ Scoring engine with 5 dimensions
-- ✅ REST API with FastAPI
-- ✅ Streamlit UI with visual profile card
-- ✅ Real job API integration (Adzuna — 20+ countries)
-- ✅ Remotive API integration (global remote jobs, no key needed)
-- ✅ Deploy on Streamlit Cloud
-- ✅ Hiring probability prediction — Logistic Regression per job
-- ✅ Explanation engine — Claude coaching tip for top 3 matches
-- ✅ Cover letter generator — one click per job
-- ⏳ Persistent cache (Redis)
-- ⏳ Structured logging / observability
-- ⏳ Career evolution dashboard
+- [ ] Download de currículo em PDF com template profissional
+- [ ] Autenticação de usuários
+- [ ] Dashboard de progresso de carreira
+- [ ] Alertas de novas vagas por email
+- [ ] Frontend React
 
 ---
 
-## 👤 Author
+## 👨‍💻 Autor
 
 **Arthur Giribola**
+- GitHub: [@ArthurGiribola](https://github.com/ArthurGiribola)
 - LinkedIn: [linkedin.com/in/arthurgiribola](https://linkedin.com/in/arthurgiribola)
-- GitHub: [github.com/ArthurGiribola](https://github.com/ArthurGiribola)
 
 ---
 
-## 📄 License
+## 📄 Licença
 
 MIT License
