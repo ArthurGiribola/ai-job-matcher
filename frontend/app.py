@@ -311,21 +311,23 @@ if "last_results" in st.session_state:
         st.metric("Matches encontrados", len(results))
 
     st.markdown("**🛠️ Skills identificadas:**")
-    st.markdown("  ".join([f"`{s}`" for s in profile["skills"]]))
+    st.markdown("  ".join([f'<span style="background:#2d2d4e; color:#7c7cff; padding:3px 10px; border-radius:20px; margin:3px; display:inline-block; font-size:0.85em;">{s}</span>' for s in profile["skills"]]), unsafe_allow_html=True)
     if profile.get("strengths"):
-        st.markdown("**⭐ Pontos fortes:** " + "  ".join([f"`{s}`" for s in profile["strengths"][:5]]))
+        st.markdown("**⭐ Pontos fortes:**")
+        st.markdown("  ".join([f'<span style="background:#2d3748; color:#68d391; padding:3px 10px; border-radius:20px; margin:3px; display:inline-block; font-size:0.85em;">{s}</span>' for s in profile["strengths"][:5]]), unsafe_allow_html=True)
 
     st.markdown("---")
-    col_trans1, col_trans2 = st.columns([3, 1])
-    with col_trans1:
+    col_t1, col_t2 = st.columns([2, 1])
+    with col_t1:
         st.markdown("**🌍 Quer candidatar para vagas internacionais?**")
-        st.caption("Claude traduz e adapta seu currículo para inglês profissional")
-    with col_trans2:
-        if st.button("🌍 Traduzir para inglês", key="translate_btn"):
-            with st.spinner("🌍 Claude traduzindo seu currículo..."):
-                translated = translate_resume_to_english(final_text, analysis)
-            if translated:
-                st.session_state["translated_resume"] = translated
+        st.caption("Claude traduz e adapta seu currículo para inglês profissional — formato ATS-friendly")
+    with col_t2:
+        translate_clicked = st.button("🌍 Traduzir para inglês", key="translate_btn", use_container_width=True)
+    if translate_clicked:
+        with st.spinner("🌍 Claude traduzindo seu currículo..."):
+            translated = translate_resume_to_english(final_text, analysis)
+        if translated:
+            st.session_state["translated_resume"] = translated
 
     if "translated_resume" in st.session_state:
         st.markdown("**🌍 Currículo em inglês:**")
@@ -341,17 +343,18 @@ if "last_results" in st.session_state:
             st.rerun()
 
     st.markdown("---")
-    st.markdown("**🚀 Quer um currículo novo e profissional?**")
-    st.caption("Claude reescreve seu currículo completo com linguagem profissional e impactante")
-
-    col_gen1, col_gen2 = st.columns(2)
-    with col_gen1:
-        if st.button("✨ Gerar currículo profissional", key="gen_resume_btn"):
-            with st.spinner("✨ Claude criando seu novo currículo..."):
-                new_resume = generate_full_resume(analysis, final_text)
-            if new_resume:
-                st.session_state["generated_resume"] = new_resume
-                st.session_state["generated_resume_job"] = None
+    col_g1, col_g2 = st.columns([2, 1])
+    with col_g1:
+        st.markdown("**🚀 Quer um currículo novo e profissional?**")
+        st.caption("Claude reescreve seu currículo completo com linguagem profissional e impactante")
+    with col_g2:
+        gen_clicked = st.button("✨ Gerar currículo profissional", key="gen_resume_btn", use_container_width=True)
+    if gen_clicked:
+        with st.spinner("✨ Claude criando seu novo currículo..."):
+            new_resume = generate_full_resume(analysis, final_text)
+        if new_resume:
+            st.session_state["generated_resume"] = new_resume
+            st.session_state["generated_resume_job"] = None
 
     if "generated_resume" in st.session_state:
         st.markdown("---")
@@ -372,10 +375,13 @@ if "last_results" in st.session_state:
             st.rerun()
 
     st.markdown("---")
-    st.markdown("**💰 Quanto você vale no mercado?**")
-    st.caption("Claude analisa suas skills e calcula sua faixa salarial atual — e como aumentar")
-
-    if st.button("💰 Calcular meu valor de mercado", key="market_score_btn"):
+    col_m1, col_m2 = st.columns([2, 1])
+    with col_m1:
+        st.markdown("**💰 Quanto você vale no mercado?**")
+        st.caption("Claude analisa suas skills e calcula sua faixa salarial atual — e como aumentar")
+    with col_m2:
+        market_clicked = st.button("💰 Calcular valor de mercado", key="market_score_btn", use_container_width=True)
+    if market_clicked:
         with st.spinner("💰 Claude analisando o mercado..."):
             market = calculate_market_score(analysis, final_text)
         if market:
