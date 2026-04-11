@@ -505,9 +505,10 @@ if "last_results" in st.session_state:
             job_country = job.get("country", country_code)
             color = "🟢" if score >= 0.7 else "🟡" if score >= 0.5 else "🔴"
 
+            job_title_short = job['title'][:50] + "..." if len(job['title']) > 50 else job['title']
             with st.expander(
-                f"{color} {job['title']} — {job['company']} | {result['score_percent']}",
-                expanded=(i < 3 or f"cover_data_{i}" in st.session_state),
+                f"{color} {job_title_short} — {job['company']} | {result['score_percent']}",
+                expanded=(i < 3 or f"cover_data_{i}" in st.session_state or f"cover_text_{i}" in st.session_state),
             ):
                 # Compact 3-column metrics
                 col1, col2, col3 = st.columns(3)
@@ -611,44 +612,47 @@ if "last_results" in st.session_state:
                             })
                         st.rerun()
 
-                original_input = st.text_area(
-                    "Cole sua carta atual aqui (opcional — para análise e reescrita):",
-                    key=f"original_letter_{i}",
-                    height=120,
-                    placeholder="Opcional: cole uma carta existente para receber pontuação, análise de problemas e duas versões melhoradas...",
-                )
-                if st.button("✉️ Gerar Cover Letter", key=f"cover_btn_{i}"):
-                    with st.spinner("✍️ Claude analisando e escrevendo..."):
-                        cover_data = generate_cover_letter_v2(
-                            analysis, job,
-                            matched_skills=result.get("matched_skills"),
-                            original_letter=original_input.strip() or None,
-                        )
-                    if cover_data.get("version_a"):
-                        st.session_state[f"cover_data_{i}"] = cover_data
-                        st.session_state[f"cover_original_{i}"] = original_input.strip()
-                    else:
-                        st.warning("Não foi possível gerar o cover letter. Tente novamente.")
+                with st.expander("📝 Tem uma carta de apresentação existente? Cole aqui para análise", expanded=False):
+                    original_input = st.text_area(
+                        label="",
+                        placeholder="Opcional: cole uma carta existente para receber análise e reescrita...",
+                        height=150,
+                        key=f"original_letter_{i}",
+                    )
 
-                # Botão de sugestões de melhoria
-                improve_key = f"improve_text_{i}"
-                if st.button("✍️ Melhorar currículo para essa vaga", key=f"improve_btn_{i}"):
-                    with st.spinner("🔍 Claude analisando seu currículo vs a vaga..."):
-                        suggestions = suggest_resume_improvements(analysis, job, final_text)
-                    if suggestions:
-                        st.session_state[improve_key] = suggestions
-                        st.session_state["improve_job_index"] = i
-                        st.session_state["improve_job_title"] = job.get("title", "")
-                    else:
-                        st.warning("Não foi possível gerar sugestões. Tente novamente.")
-
-                if st.button("🎯 Gerar currículo para essa vaga", key=f"gen_resume_{i}"):
-                    with st.spinner("🎯 Claude otimizando seu currículo para essa vaga..."):
-                        new_resume = generate_full_resume(analysis, final_text, job)
-                    if new_resume:
-                        st.session_state["generated_resume"] = new_resume
-                        st.session_state["generated_resume_job"] = job.get("title", "")
-                        st.rerun()
+                col_btn1, col_btn2, col_btn3 = st.columns(3)
+                with col_btn1:
+                    if st.button("✉️ Gerar Cover Letter", key=f"cover_btn_{i}", use_container_width=True):
+                        original_input_val = st.session_state.get(f"original_letter_{i}", "")
+                        with st.spinner("✍️ Claude analisando e escrevendo..."):
+                            cover_data = generate_cover_letter_v2(
+                                analysis, job,
+                                matched_skills=result.get("matched_skills"),
+                                original_letter=original_input_val.strip() or None,
+                            )
+                        if cover_data.get("version_a"):
+                            st.session_state[f"cover_data_{i}"] = cover_data
+                            st.session_state[f"cover_original_{i}"] = original_input_val.strip()
+                        else:
+                            st.warning("Não foi possível gerar o cover letter. Tente novamente.")
+                with col_btn2:
+                    if st.button("✍️ Melhorar currículo", key=f"improve_btn_{i}", use_container_width=True):
+                        with st.spinner("🔍 Claude analisando seu currículo vs a vaga..."):
+                            suggestions = suggest_resume_improvements(analysis, job, final_text)
+                        if suggestions:
+                            st.session_state[f"improve_text_{i}"] = suggestions
+                            st.session_state["improve_job_index"] = i
+                            st.session_state["improve_job_title"] = job.get("title", "")
+                        else:
+                            st.warning("Não foi possível gerar sugestões.")
+                with col_btn3:
+                    if st.button("🎯 Gerar currículo", key=f"gen_resume_{i}", use_container_width=True):
+                        with st.spinner("🎯 Claude otimizando seu currículo..."):
+                            new_resume = generate_full_resume(analysis, final_text, job)
+                        if new_resume:
+                            st.session_state["generated_resume"] = new_resume
+                            st.session_state["generated_resume_job"] = job.get("title", "")
+                            st.rerun()
 
     # ── Comparador de vagas ──────────────────────────────────────────────────
     if len(st.session_state.compare_jobs) >= 2:
