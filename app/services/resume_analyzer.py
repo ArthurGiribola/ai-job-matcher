@@ -632,3 +632,96 @@ Estrutura obrigatória:
     except Exception as e:
         print(f"[Claude FAIL] generate_full_resume — {type(e).__name__}: {e}")
         return ""
+
+
+def calculate_market_score(analysis: dict, resume_text: str) -> dict:
+    """
+    Calcula o valor de mercado do candidato e sugere como aumentar.
+    Retorna faixas salariais em BRL, GBP e USD.
+    """
+    try:
+        client = _get_client()
+        prompt = f"""Você é um especialista em mercado de trabalho tech com acesso a dados salariais de 2024-2025.
+
+Analise o perfil abaixo e calcule o valor de mercado REALISTA deste candidato.
+
+Perfil:
+- Nível: {analysis.get('seniority')}
+- Experiência: {analysis.get('experience_years')} anos
+- Skills: {[s['name'] for s in analysis.get('skills', [])[:15]]}
+- Complexidade dos projetos: {analysis.get('project_complexity')}
+- Red flags: {analysis.get('red_flags', [])}
+- Resumo: {analysis.get('profile_summary', '')}
+
+Retorne APENAS um JSON válido com esta estrutura exata:
+{{
+  "brazil": {{
+    "min": 3000,
+    "max": 5000,
+    "currency": "R$",
+    "period": "mês"
+  }},
+  "uk": {{
+    "min": 25000,
+    "max": 35000,
+    "currency": "£",
+    "period": "ano"
+  }},
+  "usa": {{
+    "min": 45000,
+    "max": 65000,
+    "currency": "$",
+    "period": "ano"
+  }},
+  "market_level": "Júnior",
+  "percentile": 35,
+  "skills_to_increase_salary": [
+    {{
+      "skill": "Docker",
+      "impact": "+15%",
+      "reason": "Alta demanda em DevOps e deploy de aplicações"
+    }},
+    {{
+      "skill": "Kubernetes",
+      "impact": "+20%",
+      "reason": "Orquestração de containers é skill premium"
+    }},
+    {{
+      "skill": "AWS",
+      "impact": "+25%",
+      "reason": "Cloud é obrigatório para vagas bem pagas"
+    }}
+  ],
+  "salary_after_skills": {{
+    "brazil": {{
+      "min": 6000,
+      "max": 9000
+    }},
+    "uk": {{
+      "min": 35000,
+      "max": 50000
+    }},
+    "usa": {{
+      "min": 65000,
+      "max": 90000
+    }}
+  }},
+  "insight": "Frase honesta de 1-2 linhas sobre o posicionamento de mercado"
+}}
+
+Seja REALISTA — não superestime. Base nos dados de mercado brasileiro e internacional de 2024-2025."""
+
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=800,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        raw = message.content[0].text.strip()
+        raw = raw.replace("```json", "").replace("```", "").strip()
+        import json
+        result = json.loads(raw)
+        print(f"[Claude OK] calculate_market_score")
+        return result
+    except Exception as e:
+        print(f"[Claude FAIL] calculate_market_score — {type(e).__name__}: {e}")
+        return {}

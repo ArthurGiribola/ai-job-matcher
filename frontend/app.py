@@ -11,7 +11,7 @@ from app.services.resume_analyzer import (
     analyze_resume, get_skill_names, generate_job_explanation,
     generate_cover_letter, generate_cover_letter_v2, suggest_resume_improvements,
     validate_resume_quality, detect_job_red_flags, translate_resume_to_english,
-    generate_full_resume,
+    generate_full_resume, calculate_market_score,
 )
 from app.services.job_collector import get_jobs, SUPPORTED_COUNTRIES
 from app.services.database import save_application, load_applications, get_or_create_session_id
@@ -355,6 +355,69 @@ if "last_results" in st.session_state:
         st.caption("💡 Copie o texto acima e cole no seu editor favorito (Word, Google Docs, Notion)")
         if st.button("🗑️ Fechar currículo gerado", key="close_gen_resume"):
             del st.session_state["generated_resume"]
+            st.rerun()
+
+    st.markdown("---")
+    st.markdown("**💰 Quanto você vale no mercado?**")
+    st.caption("Claude analisa suas skills e calcula sua faixa salarial atual — e como aumentar")
+
+    if st.button("💰 Calcular meu valor de mercado", key="market_score_btn"):
+        with st.spinner("💰 Claude analisando o mercado..."):
+            market = calculate_market_score(analysis, final_text)
+        if market:
+            st.session_state["market_score"] = market
+
+    if "market_score" in st.session_state:
+        market = st.session_state["market_score"]
+
+        st.markdown("---")
+        st.subheader("💰 Seu valor de mercado atual")
+
+        st.info(f"💡 {market.get('insight', '')}")
+
+        col1, col2, col3 = st.columns(3)
+        br = market.get("brazil", {})
+        uk = market.get("uk", {})
+        usa = market.get("usa", {})
+        with col1:
+            st.markdown("### 🇧🇷 Brasil")
+            st.markdown(f"**{br.get('currency', 'R$')} {br.get('min', 0):,.0f} – {br.get('max', 0):,.0f}/{br.get('period', 'mês')}**")
+        with col2:
+            st.markdown("### 🇬🇧 Reino Unido")
+            st.markdown(f"**{uk.get('currency', '£')} {uk.get('min', 0):,.0f} – {uk.get('max', 0):,.0f}/{uk.get('period', 'ano')}**")
+        with col3:
+            st.markdown("### 🇺🇸 Estados Unidos")
+            st.markdown(f"**{usa.get('currency', '$')} {usa.get('min', 0):,.0f} – {usa.get('max', 0):,.0f}/{usa.get('period', 'ano')}**")
+
+        skills_boost = market.get("skills_to_increase_salary", [])
+        if skills_boost:
+            st.markdown("---")
+            st.subheader("📈 Como aumentar seu valor")
+
+            after = market.get("salary_after_skills", {})
+            after_br = after.get("brazil", {})
+            after_uk = after.get("uk", {})
+            after_usa = after.get("usa", {})
+
+            st.markdown("Aprendendo as skills abaixo, você poderia chegar a:")
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.markdown(f"🇧🇷 **R$ {after_br.get('min', 0):,.0f} – {after_br.get('max', 0):,.0f}/mês**")
+            with col2:
+                st.markdown(f"🇬🇧 **£ {after_uk.get('min', 0):,.0f} – {after_uk.get('max', 0):,.0f}/ano**")
+            with col3:
+                st.markdown(f"🇺🇸 **$ {after_usa.get('min', 0):,.0f} – {after_usa.get('max', 0):,.0f}/ano**")
+
+            st.markdown("**Skills que mais aumentam seu salário:**")
+            for skill in skills_boost:
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    st.markdown(f"**{skill.get('skill')}** — {skill.get('reason')}")
+                with col2:
+                    st.markdown(f"**{skill.get('impact')}** 💰")
+
+        if st.button("🗑️ Fechar score de mercado", key="close_market"):
+            del st.session_state["market_score"]
             st.rerun()
 
     # ── Section 2: Análise do Claude ────────────────────────────────────────
