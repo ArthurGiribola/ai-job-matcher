@@ -475,3 +475,78 @@ def validate_resume_quality(resume_text: str) -> dict:
         "warnings": warnings,
         "word_count": word_count,
     }
+
+
+def detect_job_red_flags(job: dict) -> list[str]:
+    """
+    Detecta red flags na descrição da vaga.
+    Retorna lista de avisos sem chamar Claude — análise local.
+    """
+    flags = []
+    title = job.get("title", "").lower()
+    description = job.get("description", "").lower()
+    text = f"{title} {description}"
+
+    # Salário
+    if not job.get("salary_min") and not job.get("salary_max"):
+        flags.append("💰 Salário não informado — pergunte na entrevista")
+
+    # Exigências excessivas para nível junior
+    senior_words = ["5+ years", "10 years", "extensive experience", "expert level"]
+    if job.get("seniority") == "junior" and any(w in text for w in senior_words):
+        flags.append("⚠️ Vaga junior com exigências de senior — verifique antes de aplicar")
+
+    # Urgência suspeita
+    if any(w in text for w in ["urgent", "immediately", "asap", "urgente"]):
+        flags.append("⚡ Vaga com urgência — pode indicar alta rotatividade")
+
+    # Empresa sem informação
+    if job.get("company", "").lower() in ["company", "confidential", ""]:
+        flags.append("🏢 Empresa não identificada — pesquise antes de aplicar")
+
+    # Stack muito ampla
+    skills = job.get("skills_required", [])
+    if len(skills) > 10:
+        flags.append(f"📋 Muitas skills exigidas ({len(skills)}) — pode ser vaga mal definida")
+
+    # Palavras positivas demais
+    hype_words = ["rockstar", "ninja", "guru", "unicorn", "superhero"]
+    if any(w in text for w in hype_words):
+        flags.append("🚩 Linguagem de 'rockstar' — cultura pode ser tóxica")
+
+    return flags
+
+
+def translate_resume_to_english(resume_text: str, analysis: dict) -> str:
+    """
+    Traduz e adapta o currículo para inglês profissional.
+    """
+    try:
+        client = _get_client()
+        prompt = f"""You are a professional resume translator and career coach.
+
+Translate and adapt this resume to professional English.
+
+Rules:
+- Keep all facts exactly as they are — do NOT invent or add anything
+- Use professional English resume language
+- Convert Brazilian Portuguese terms to English equivalents
+- Keep technical terms in English (they already are)
+- Format cleanly with sections: Summary, Experience, Projects, Education, Skills
+- Use action verbs (Developed, Implemented, Designed, Built)
+- Keep it concise and ATS-friendly
+
+Resume to translate:
+{resume_text[:3000]}"""
+
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1000,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        result = message.content[0].text.strip()
+        print(f"[Claude OK] translate_resume_to_english — {len(result)} chars")
+        return result
+    except Exception as e:
+        print(f"[Claude FAIL] translate_resume_to_english — {type(e).__name__}: {e}")
+        return ""

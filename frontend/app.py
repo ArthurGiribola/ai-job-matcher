@@ -7,7 +7,11 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.services.resume_parser import extract_text_from_pdf
-from app.services.resume_analyzer import analyze_resume, get_skill_names, generate_job_explanation, generate_cover_letter, generate_cover_letter_v2, suggest_resume_improvements, validate_resume_quality
+from app.services.resume_analyzer import (
+    analyze_resume, get_skill_names, generate_job_explanation,
+    generate_cover_letter, generate_cover_letter_v2, suggest_resume_improvements,
+    validate_resume_quality, detect_job_red_flags, translate_resume_to_english,
+)
 from app.services.job_collector import get_jobs, SUPPORTED_COUNTRIES
 from app.services.database import save_application, load_applications, get_or_create_session_id
 
@@ -103,6 +107,8 @@ def format_salary(salary_min, salary_max, country_code, source):
 
 if "applied_jobs" not in st.session_state:
     st.session_state.applied_jobs = load_applications()
+if "compare_jobs" not in st.session_state:
+    st.session_state.compare_jobs = []
 
 st.set_page_config(page_title="AI Job Matcher", page_icon="🎯", layout="wide")
 
@@ -294,6 +300,31 @@ if "last_results" in st.session_state:
     if profile.get("strengths"):
         st.markdown("**⭐ Pontos fortes:** " + "  ".join([f"`{s}`" for s in profile["strengths"][:5]]))
 
+    st.markdown("---")
+    col_trans1, col_trans2 = st.columns([3, 1])
+    with col_trans1:
+        st.markdown("**🌍 Quer candidatar para vagas internacionais?**")
+        st.caption("Claude traduz e adapta seu currículo para inglês profissional")
+    with col_trans2:
+        if st.button("🌍 Traduzir para inglês", key="translate_btn"):
+            with st.spinner("🌍 Claude traduzindo seu currículo..."):
+                translated = translate_resume_to_english(final_text, analysis)
+            if translated:
+                st.session_state["translated_resume"] = translated
+
+    if "translated_resume" in st.session_state:
+        st.markdown("**🌍 Currículo em inglês:**")
+        st.text_area(
+            label="",
+            value=st.session_state["translated_resume"],
+            height=400,
+            key="translated_display",
+        )
+        st.caption("📋 Copie e use para candidaturas internacionais!")
+        if st.button("🗑️ Fechar tradução"):
+            del st.session_state["translated_resume"]
+            st.rerun()
+
     # ── Section 2: Análise do Claude ────────────────────────────────────────
     if analysis.get("source") == "claude":
         st.markdown("---")
@@ -377,6 +408,31 @@ if "last_results" in st.session_state:
                 st.caption(f"📍 {job.get('location', 'N/A')}  |  👤 {job.get('seniority', 'N/A').upper()}  |  🏢 {source.upper()}")
                 st.markdown(f"*{result['reason']}*")
 
+                red_flags = detect_job_red_flags(job)
+                if red_flags:
+                    with st.expander(f"🚩 {len(red_flags)} red flag(s) detectado(s)", expanded=False):
+                        for flag in red_flags:
+                            st.markdown(flag)
+
+                # Checkbox para comparar
+                is_comparing = any(j["id"] == job.get("id") for j in st.session_state.compare_jobs)
+                if st.checkbox("Adicionar à comparação", key=f"compare_{i}", value=is_comparing):
+                    if not is_comparing:
+                        st.session_state.compare_jobs.append({
+                            "id": job.get("id"),
+                            "title": job.get("title"),
+                            "company": job.get("company"),
+                            "score": result.get("score_percent"),
+                            "hiring_prob": f"{int(result.get('hiring_probability', 0) * 100)}%",
+                            "matched": result.get("matched_skills", []),
+                            "missing": result.get("missing_skills", []),
+                            "salary": format_salary(job.get("salary_min", 0), job.get("salary_max", 0), job.get("country", "gb"), job.get("source", "")),
+                            "remote": "🌐 Remoto" if job.get("remote") else "🏢 Presencial",
+                            "seniority": job.get("seniority", "").upper(),
+                        })
+                else:
+                    st.session_state.compare_jobs = [j for j in st.session_state.compare_jobs if j["id"] != job.get("id")]
+
                 if result["matched_skills"]:
                     st.markdown("**✅ Você tem:** " + "  ".join([f"`{s}`" for s in result["matched_skills"]]))
                 if result["missing_skills"]:
@@ -458,6 +514,30 @@ if "last_results" in st.session_state:
                         st.session_state["improve_job_title"] = job.get("title", "")
                     else:
                         st.warning("Não foi possível gerar sugestões. Tente novamente.")
+
+    # ── Comparador de vagas ──────────────────────────────────────────────────
+    if len(st.session_state.compare_jobs) >= 2:
+        st.markdown("---")
+        st.subheader(f"⚖️ Comparando {len(st.session_state.compare_jobs)} vagas")
+        cols = st.columns(len(st.session_state.compare_jobs))
+        for idx, cjob in enumerate(st.session_state.compare_jobs):
+            with cols[idx]:
+                st.markdown(f"**{cjob['title']}**")
+                st.markdown(f"🏢 {cjob['company']}")
+                st.markdown(f"📊 Match: **{cjob['score']}**")
+                st.markdown(f"🎯 Prob: **{cjob['hiring_prob']}**")
+                st.markdown(f"💰 {cjob['salary']}")
+                st.markdown(f"📍 {cjob['remote']}")
+                st.markdown(f"👤 {cjob['seniority']}")
+                if cjob['matched']:
+                    st.markdown("✅ " + ", ".join(cjob['matched'][:3]))
+                if cjob['missing']:
+                    st.markdown("❌ " + ", ".join(cjob['missing'][:3]))
+        if st.button("🗑️ Limpar comparação"):
+            st.session_state.compare_jobs = []
+            st.rerun()
+    elif len(st.session_state.compare_jobs) == 1:
+        st.info("➕ Selecione mais uma vaga para comparar")
 
     # ── Section 5: Cover Letters (only if any exist) ─────────────────────────
     cover_indices = sorted(
