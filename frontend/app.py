@@ -11,6 +11,7 @@ from app.services.resume_analyzer import (
     analyze_resume, get_skill_names, generate_job_explanation,
     generate_cover_letter, generate_cover_letter_v2, suggest_resume_improvements,
     validate_resume_quality, detect_job_red_flags, translate_resume_to_english,
+    generate_full_resume,
 )
 from app.services.job_collector import get_jobs, SUPPORTED_COUNTRIES
 from app.services.database import save_application, load_applications, get_or_create_session_id
@@ -325,6 +326,37 @@ if "last_results" in st.session_state:
             del st.session_state["translated_resume"]
             st.rerun()
 
+    st.markdown("---")
+    st.markdown("**🚀 Quer um currículo novo e profissional?**")
+    st.caption("Claude reescreve seu currículo completo com linguagem profissional e impactante")
+
+    col_gen1, col_gen2 = st.columns(2)
+    with col_gen1:
+        if st.button("✨ Gerar currículo profissional", key="gen_resume_btn"):
+            with st.spinner("✨ Claude criando seu novo currículo..."):
+                new_resume = generate_full_resume(analysis, final_text)
+            if new_resume:
+                st.session_state["generated_resume"] = new_resume
+                st.session_state["generated_resume_job"] = None
+
+    if "generated_resume" in st.session_state:
+        st.markdown("---")
+        job_label = st.session_state.get("generated_resume_job")
+        title = f"✨ Seu novo currículo profissional{f' — otimizado para: {job_label}' if job_label else ''}:"
+        st.markdown(f"**{title}**")
+        st.markdown(st.session_state["generated_resume"])
+        st.markdown("---")
+        st.text_area(
+            "📋 Versão para copiar:",
+            value=st.session_state["generated_resume"],
+            height=400,
+            key="generated_resume_copy",
+        )
+        st.caption("💡 Copie o texto acima e cole no seu editor favorito (Word, Google Docs, Notion)")
+        if st.button("🗑️ Fechar currículo gerado", key="close_gen_resume"):
+            del st.session_state["generated_resume"]
+            st.rerun()
+
     # ── Section 2: Análise do Claude ────────────────────────────────────────
     if analysis.get("source") == "claude":
         st.markdown("---")
@@ -514,6 +546,14 @@ if "last_results" in st.session_state:
                         st.session_state["improve_job_title"] = job.get("title", "")
                     else:
                         st.warning("Não foi possível gerar sugestões. Tente novamente.")
+
+                if st.button("🎯 Gerar currículo para essa vaga", key=f"gen_resume_{i}"):
+                    with st.spinner("🎯 Claude otimizando seu currículo para essa vaga..."):
+                        new_resume = generate_full_resume(analysis, final_text, job)
+                    if new_resume:
+                        st.session_state["generated_resume"] = new_resume
+                        st.session_state["generated_resume_job"] = job.get("title", "")
+                        st.rerun()
 
     # ── Comparador de vagas ──────────────────────────────────────────────────
     if len(st.session_state.compare_jobs) >= 2:

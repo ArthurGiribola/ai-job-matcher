@@ -550,3 +550,85 @@ Resume to translate:
     except Exception as e:
         print(f"[Claude FAIL] translate_resume_to_english — {type(e).__name__}: {e}")
         return ""
+
+
+def generate_full_resume(
+    analysis: dict,
+    resume_text: str,
+    job: dict = None,
+) -> str:
+    """
+    Gera um currículo novo completo e profissional baseado no original.
+    Se job for fornecido, otimiza para aquela vaga específica.
+    """
+    try:
+        client = _get_client()
+
+        job_context = ""
+        if job:
+            job_context = f"""
+Otimize especificamente para esta vaga:
+- Cargo: {job.get('title')} em {job.get('company')}
+- Skills exigidas: {job.get('skills_required', [])[:10]}
+- Nível: {job.get('seniority')}
+"""
+
+        prompt = f"""Você é um especialista em redação de currículos técnicos com 15 anos de experiência em recrutamento de tecnologia.
+
+Gere um currículo NOVO, profissional e completo baseado nas informações abaixo.
+{job_context}
+
+Perfil extraído:
+- Nível: {analysis.get('seniority')}
+- Skills: {[s['name'] for s in analysis.get('skills', [])[:15]]}
+- Experiência: {analysis.get('experience_years')} anos
+- Pontos fortes: {analysis.get('strengths', [])[:5]}
+- Resumo atual: {analysis.get('profile_summary', '')}
+
+Currículo original:
+{resume_text[:3000]}
+
+Regras OBRIGATÓRIAS:
+- NÃO invente experiências, empresas ou projetos que não existem
+- Use APENAS informações do currículo original
+- Reescreva com linguagem mais profissional e impactante
+- Use verbos de ação fortes (Desenvolvi, Implementei, Otimizei, Construí)
+- Adicione métricas onde fizer sentido baseado no contexto
+- Formato: Markdown bem estruturado
+- Idioma: Português do Brasil
+- Inclua TODAS as seções: Resumo Profissional, Experiência, Projetos, Educação, Skills, Idiomas
+
+Estrutura obrigatória:
+# [Nome]
+**[Título Profissional]**
+[Contato]
+
+## Resumo Profissional
+[3-4 linhas impactantes]
+
+## Experiência Profissional
+[Experiências reescritas com bullets impactantes]
+
+## Projetos
+[Projetos com tecnologias e resultados]
+
+## Educação
+[Formação]
+
+## Skills Técnicas
+[Skills organizadas por categoria]
+
+## Idiomas
+[Idiomas]"""
+
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=2000,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        result = message.content[0].text.strip()
+        print(f"[Claude OK] generate_full_resume — {len(result)} chars")
+        return result
+    except Exception as e:
+        print(f"[Claude FAIL] generate_full_resume — {type(e).__name__}: {e}")
+        return ""
