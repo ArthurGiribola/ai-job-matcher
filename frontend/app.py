@@ -113,11 +113,20 @@ if "compare_jobs" not in st.session_state:
 
 st.set_page_config(page_title="AI Job Matcher", page_icon="🎯", layout="wide")
 
-st.title("🎯 AI Job Matcher")
-st.markdown("Envie seu currículo e descubra as vagas mais compatíveis com seu perfil — em qualquer lugar do mundo.")
+st.markdown("""
+<div style="text-align: center; padding: 20px 0;">
+    <h1 style="font-size: 2.5em; margin-bottom: 5px;">🎯 AI Job Matcher</h1>
+    <p style="color: #888; font-size: 1.1em;">Análise de currículo com IA · Matching semântico · Coaching de carreira</p>
+    <p style="color: #666; font-size: 0.9em;">Powered by Claude AI · Adzuna · Remotive</p>
+</div>
+""", unsafe_allow_html=True)
 
 with st.sidebar:
-    st.header("⚙️ Filtros")
+    st.sidebar.markdown("""
+<div style="text-align:center; padding:10px 0 20px 0;">
+    <h2 style="margin:0;">⚙️ Filtros</h2>
+</div>
+""", unsafe_allow_html=True)
     seniority = st.selectbox("Nível", ["junior", "mid", "senior", "lead"])
     country_name = st.selectbox("País", list(COUNTRY_OPTIONS.keys()))
     country_code = COUNTRY_OPTIONS[country_name]
@@ -193,6 +202,11 @@ with tab2:
 final_text = resume_text_from_pdf if resume_text_from_pdf else resume_text
 
 st.markdown("---")
+st.markdown("""
+<div style="text-align:center; padding:15px 0;">
+    <p style="color:#888;">✨ Cole seu currículo acima e clique no botão para começar</p>
+</div>
+""", unsafe_allow_html=True)
 analyze_btn = st.button("🔍 Analisar e Buscar Vagas", type="primary")
 
 if analyze_btn:
@@ -500,7 +514,13 @@ if "last_results" in st.session_state:
                 with col3:
                     st.metric("Modalidade", "🌐 Remoto" if job.get("remote") else "🏢 Presencial")
 
-                st.caption(f"📍 {job.get('location', 'N/A')}  |  👤 {job.get('seniority', 'N/A').upper()}  |  🏢 {source.upper()}")
+                st.markdown(f"""
+<div style="background:#1a1a2e; border-radius:8px; padding:10px 15px; margin:8px 0; font-size:0.9em;">
+📍 <b>{job.get('location', 'N/A')}</b> &nbsp;|&nbsp;
+👤 <b>{job.get('seniority', 'N/A').upper()}</b> &nbsp;|&nbsp;
+🏢 {source.upper()}
+</div>
+""", unsafe_allow_html=True)
                 st.markdown(f"*{result['reason']}*")
 
                 red_flags = detect_job_red_flags(job)
@@ -537,7 +557,13 @@ if "last_results" in st.session_state:
 
                 hiring_pct = int(result.get("hiring_probability", 0) * 100)
                 hp_color = "#44ff44" if hiring_pct >= 60 else "#ffaa00" if hiring_pct >= 40 else "#ff4444"
-                st.markdown(f'<p style="color:{hp_color}; font-size:0.9em;">🎯 Probabilidade de chamada: <b>{hiring_pct}%</b></p>', unsafe_allow_html=True)
+                st.markdown(f"""
+<div style="display:flex; align-items:center; gap:10px; margin:8px 0;">
+    <div style="background:{hp_color}22; border:1px solid {hp_color}; border-radius:20px; padding:4px 14px;">
+        <span style="color:{hp_color}; font-weight:bold;">🎯 {hiring_pct}% probabilidade de chamada</span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
                 # Explanation — cached so it only calls Claude once per job
                 if i < 3 and analysis.get("source") == "claude":
