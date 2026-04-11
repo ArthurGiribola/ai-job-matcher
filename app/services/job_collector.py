@@ -11,6 +11,18 @@ load_dotenv()
 ADZUNA_BASE_URL = "https://api.adzuna.com/v1/api/jobs"
 
 
+def _get_secret(key: str) -> str:
+    """Lê secret do ambiente ou do Streamlit secrets."""
+    value = os.getenv(key, "")
+    if not value:
+        try:
+            import streamlit as st
+            value = st.secrets.get(key, "")
+        except Exception:
+            pass
+    return value
+
+
 def _get_adzuna_credentials() -> tuple[str | None, str | None]:
     """Lê credenciais Adzuna do .env ou st.secrets (lazy, para Streamlit Cloud)."""
     app_id = os.getenv("ADZUNA_APP_ID")
@@ -237,6 +249,142 @@ def fetch_remotive_jobs(
         return []
 
 
+def fetch_reed_jobs(query: str, location: str = "", limit: int = 10) -> list[dict]:
+    """Busca vagas na Reed.co.uk — forte no mercado UK."""
+    try:
+        from requests.auth import HTTPBasicAuth
+        api_key = _get_secret("REED_API_KEY")
+        if not api_key:
+            print("[Reed] API key não configurada — pulando")
+            return []
+        params = {
+            "keywords": query,
+            "locationName": location or "London",
+            "resultsToTake": limit,
+        }
+        response = requests.get(
+            "https://www.reed.co.uk/api/1.0/search",
+            params=params,
+            auth=HTTPBasicAuth(api_key, ""),
+            timeout=10,
+        )
+        if response.status_code != 200:
+            print(f"[Reed] Erro {response.status_code}")
+            return []
+        jobs = []
+        for j in response.json().get("results", []):
+            jobs.append({
+                "id": f"reed_{j.get('jobId')}",
+                "title": j.get("jobTitle", ""),
+                "company": j.get("employerName", ""),
+                "location": j.get("locationName", ""),
+                "description": j.get("jobDescription", "")[:2000],
+                "salary_min": j.get("minimumSalary") or 0,
+                "salary_max": j.get("maximumSalary") or 0,
+                "url": j.get("jobUrl", ""),
+                "source": "reed",
+                "country": "gb",
+                "remote": False,
+                "skills_required": [],
+                "seniority": "mid",
+                "posted_at": datetime.today().strftime("%Y-%m-%d"),
+            })
+        print(f"[Reed] {len(jobs)} vagas encontradas")
+        return jobs
+    except Exception as e:
+        print(f"[Reed] Falhou: {e}")
+        return []
+
+
+def fetch_jooble_jobs(query: str, location: str = "", limit: int = 10) -> list[dict]:
+    """Busca vagas no Jooble — agrega vagas do mundo todo."""
+    try:
+        api_key = _get_secret("JOOBLE_API_KEY")
+        if not api_key:
+            print("[Jooble] API key não configurada — pulando")
+            return []
+        payload = {
+            "keywords": query,
+            "location": location or "",
+            "page": 1,
+        }
+        response = requests.post(
+            f"https://jooble.org/api/{api_key}",
+            json=payload,
+            timeout=10,
+        )
+        if response.status_code != 200:
+            print(f"[Jooble] Erro {response.status_code}")
+            return []
+        jobs = []
+        for j in response.json().get("jobs", [])[:limit]:
+            jobs.append({
+                "id": f"jooble_{j.get('id', '')}",
+                "title": j.get("title", ""),
+                "company": j.get("company", ""),
+                "location": j.get("location", ""),
+                "description": j.get("snippet", "")[:2000],
+                "salary_min": 0,
+                "salary_max": 0,
+                "url": j.get("link", ""),
+                "source": "jooble",
+                "country": "us",
+                "remote": "remote" in j.get("type", "").lower(),
+                "skills_required": [],
+                "seniority": "mid",
+                "posted_at": datetime.today().strftime("%Y-%m-%d"),
+            })
+        print(f"[Jooble] {len(jobs)} vagas encontradas")
+        return jobs
+    except Exception as e:
+        print(f"[Jooble] Falhou: {e}")
+        return []
+
+
+def fetch_muse_jobs(query: str, limit: int = 10) -> list[dict]:
+    """Busca vagas na The Muse — gratuita, sem chave."""
+    try:
+        params = {"category": query, "page": 0}
+        response = requests.get(
+            "https://www.themuse.com/api/public/jobs",
+            params=params,
+            timeout=10,
+        )
+        if response.status_code != 200:
+            print(f"[Muse] Erro {response.status_code}")
+            return []
+        jobs = []
+        for j in response.json().get("results", [])[:limit]:
+            locations = j.get("locations", [])
+            location = locations[0].get("name", "Remote") if locations else "Remote"
+            levels = j.get("levels", [])
+            seniority = "junior" if any(
+                "junior" in l.get("name", "").lower() or "entry" in l.get("name", "").lower()
+                for l in levels
+            ) else "mid"
+            jobs.append({
+                "id": f"muse_{j.get('id')}",
+                "title": j.get("name", ""),
+                "company": j.get("company", {}).get("name", ""),
+                "location": location,
+                "description": j.get("contents", "")[:2000],
+                "salary_min": 0,
+                "salary_max": 0,
+                "url": j.get("refs", {}).get("landing_page", ""),
+                "source": "muse",
+                "country": "us",
+                "remote": "remote" in location.lower() or "flexible" in location.lower(),
+                "skills_required": [],
+                "seniority": seniority,
+                "posted_at": datetime.today().strftime("%Y-%m-%d"),
+            })
+        print(f"[Muse] {len(jobs)} vagas encontradas")
+        return jobs
+    except Exception as e:
+        print(f"[Muse] Falhou: {e}")
+        return []
+
+
 def enrich_jobs_with_claude(jobs: list[dict], max_enrich: int = 10) -> list[dict]:
     """
     Enriquece skills das vagas usando Claude Haiku.
@@ -285,12 +433,12 @@ def get_jobs(
             pass
 
     if candidate_skills:
-        query = " ".join(candidate_skills[:3])
+        skill_query = " ".join(candidate_skills[:3])
     else:
-        query = "python developer"
+        skill_query = "python developer"
 
     real_jobs = fetch_adzuna_jobs(
-        keywords=query,
+        keywords=skill_query,
         location=location,
         results_per_page=limit,
         country_code=country,
@@ -305,7 +453,7 @@ def get_jobs(
         )
 
     remotive_jobs = fetch_remotive_jobs(
-        keywords=query,
+        keywords=skill_query,
         limit=10,
     )
 
@@ -315,6 +463,19 @@ def get_jobs(
             mock_jobs = json.load(f)
 
     all_jobs = real_jobs + remotive_jobs + mock_jobs
+
+    # Reed — só para UK
+    if country == "gb":
+        reed_jobs = fetch_reed_jobs(query=skill_query, location=location, limit=10)
+        all_jobs.extend(reed_jobs)
+
+    # Jooble — global
+    jooble_jobs = fetch_jooble_jobs(query=skill_query, location=location, limit=10)
+    all_jobs.extend(jooble_jobs)
+
+    # The Muse — global, sem chave
+    muse_jobs = fetch_muse_jobs(query=skill_query, limit=8)
+    all_jobs.extend(muse_jobs)
     seen = set()
     unique = []
     for job in all_jobs:

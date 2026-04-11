@@ -521,11 +521,20 @@ if "last_results" in st.session_state:
                 with col3:
                     st.metric("Modalidade", "🌐 Remoto" if job.get("remote") else "🏢 Presencial")
 
+                source_labels = {
+                    "adzuna": ("ADZUNA", "#0066cc"),
+                    "remotive": ("REMOTIVE", "#00aa44"),
+                    "reed": ("REED", "#cc0000"),
+                    "jooble": ("JOOBLE", "#ff6600"),
+                    "muse": ("THE MUSE", "#9900cc"),
+                    "mock": ("DEMO", "#888888"),
+                }
+                src_label, src_color = source_labels.get(source, (source.upper(), "#888888"))
                 st.markdown(f"""
 <div style="background:#1a1a2e; border-radius:8px; padding:10px 15px; margin:8px 0; font-size:0.9em;">
 📍 <b>{job.get('location', 'N/A')}</b> &nbsp;|&nbsp;
 👤 <b>{job.get('seniority', 'N/A').upper()}</b> &nbsp;|&nbsp;
-🏢 {source.upper()}
+🏢 <span style="background:{src_color}22; color:{src_color}; border:1px solid {src_color}33; border-radius:8px; padding:1px 7px; font-size:0.8em;">{src_label}</span>
 </div>
 """, unsafe_allow_html=True)
                 st.markdown(f"*{result['reason']}*")
