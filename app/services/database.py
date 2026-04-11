@@ -28,10 +28,14 @@ def _get_supabase_client():
 
 
 def get_or_create_session_id() -> str:
-    """Retorna session_id persistente via st.session_state."""
+    """Retorna session_id persistente — lê dos query params se disponível."""
     import streamlit as st
     if "session_id" not in st.session_state:
-        st.session_state.session_id = str(uuid.uuid4())
+        sid = st.query_params.get("sid", "")
+        if sid:
+            st.session_state.session_id = sid
+        else:
+            st.session_state.session_id = str(uuid.uuid4())
     return st.session_state.session_id
 
 
@@ -65,16 +69,20 @@ def load_applications() -> list[dict]:
     try:
         client = _get_supabase_client()
         if not client:
+            print("[Supabase] Cliente não disponível — retornando lista vazia")
             return []
         session_id = get_or_create_session_id()
+        print(f"[Supabase] Carregando aplicações para session_id: {session_id}")
         response = client.table("applied_jobs")\
             .select("*")\
             .eq("session_id", session_id)\
             .order("applied_at", desc=True)\
             .execute()
-        return response.data or []
+        data = response.data or []
+        print(f"[Supabase] {len(data)} aplicações encontradas")
+        return data
     except Exception as e:
-        print(f"[Supabase] Load failed: {e}")
+        print(f"[Supabase] Load failed: {type(e).__name__}: {e}")
         return []
 
 

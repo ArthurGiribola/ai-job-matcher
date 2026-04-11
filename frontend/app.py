@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import tempfile
 import os
 import sys
@@ -15,6 +16,41 @@ from app.services.resume_analyzer import (
 )
 from app.services.job_collector import get_jobs, SUPPORTED_COUNTRIES
 from app.services.database import save_application, load_applications, get_or_create_session_id
+
+
+def get_persistent_session_id() -> str:
+    """
+    Recupera ou cria um session_id persistente via localStorage do navegador.
+    Sobrevive a F5 e reloads.
+    """
+    if "session_id" not in st.session_state:
+        # Injeta JS para ler/criar o session_id no localStorage
+        components.html("""
+            <script>
+                let sid = localStorage.getItem('ai_job_matcher_session_id');
+                if (!sid) {
+                    sid = 'sess_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+                    localStorage.setItem('ai_job_matcher_session_id', sid);
+                }
+                // Envia para o Streamlit via query param
+                const url = new URL(window.location.href);
+                if (!url.searchParams.get('sid')) {
+                    url.searchParams.set('sid', sid);
+                    window.location.href = url.toString();
+                }
+            </script>
+        """, height=0)
+
+        # Lê o sid dos query params
+        sid = st.query_params.get("sid", "")
+        if sid:
+            st.session_state.session_id = sid
+        else:
+            import uuid
+            st.session_state.session_id = str(uuid.uuid4())
+
+    return st.session_state.session_id
+
 
 @st.cache_data(ttl=1800, show_spinner=False)
 def cached_get_jobs(skills_tuple, limit, country_code, city):
