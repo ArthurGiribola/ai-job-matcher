@@ -384,7 +384,7 @@ Vaga:
 - Cargo: {job.get('title')} em {job.get('company')}
 - Skills exigidas: {job.get('skills_required', [])[:10]}
 - Nível: {job.get('seniority')}
-- Skills que o candidato não tem: {job.get('skills_required', [])}
+- Skills que o candidato não tem: {[s for s in job.get('skills_required', []) if s not in [x['name'] for x in analysis.get('skills', [])]]}
 
 Trecho do currículo:
 {resume_text[:2000]}

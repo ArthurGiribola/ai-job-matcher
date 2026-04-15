@@ -14,7 +14,7 @@ from app.services.resume_analyzer import (
     generate_full_resume, calculate_market_score,
 )
 from app.services.job_collector import get_jobs, SUPPORTED_COUNTRIES
-from app.services.database import save_application, load_applications, get_or_create_session_id
+from app.services.database import save_application, load_applications, get_or_create_session_id, delete_application
 
 
 @st.cache_data(ttl=1800, show_spinner=False)
@@ -156,9 +156,11 @@ with st.sidebar:
             st.sidebar.markdown(
                 f"**{title}**  \n"
                 f"{app_job['company']} | {app_job['score']} match  \n"
-                f"🎯 {app_job['hiring_prob']} prob. | {app_job['applied_at']}"
+                f"🎯 {app_job.get('hiring_prob', '—')} prob. | {app_job.get('applied_at', '—')}"
             )
         if st.sidebar.button("🗑️ Limpar histórico"):
+            for job in st.session_state.applied_jobs:
+                delete_application(job.get("job_id", job.get("id", "")))
             st.session_state.applied_jobs = []
             st.rerun()
     else:
@@ -211,7 +213,12 @@ with tab2:
             except Exception as e:
                 st.error(f"Erro ao processar PDF: {str(e)}")
 
-final_text = resume_text_from_pdf if resume_text_from_pdf else resume_text
+if resume_text_from_pdf:
+    st.session_state["final_text"] = resume_text_from_pdf
+elif resume_text:
+    st.session_state["final_text"] = resume_text
+
+final_text = st.session_state.get("final_text", "")
 
 st.markdown("---")
 st.markdown("""
