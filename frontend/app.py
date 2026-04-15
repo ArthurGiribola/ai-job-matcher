@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.services.resume_parser import extract_text_from_pdf
 from app.services.resume_analyzer import (
     analyze_resume, get_skill_names, generate_job_explanation,
-    generate_cover_letter, generate_cover_letter_v2, suggest_resume_improvements,
+    generate_cover_letter_v2, suggest_resume_improvements,
     validate_resume_quality, detect_job_red_flags, translate_resume_to_english,
     generate_full_resume, calculate_market_score,
 )
@@ -27,9 +27,6 @@ def cached_get_jobs(skills_tuple, limit, country_code, city):
         location=city,
     )
 from app.services.scoring_engine import rank_jobs, get_top_missing_skills
-from app.services.embedder import warmup_mock_jobs
-
-warmup_mock_jobs()
 
 SKILL_RESOURCES = {
     "Docker": "https://docs.docker.com/get-started/",
@@ -277,6 +274,7 @@ if analyze_btn:
                 candidate_seniority=profile.get("seniority", seniority),
                 limit=50,
                 resume_text=final_text,
+                experience_years=analysis.get("experience_years", 0),
             )
             missing = get_top_missing_skills(results)
             progress_placeholder.empty()
@@ -409,6 +407,12 @@ if "last_results" in st.session_state:
     if "market_score" in st.session_state:
         market = st.session_state["market_score"]
 
+        def safe_num(val, default=0):
+            try:
+                return float(val) if val else default
+            except (ValueError, TypeError):
+                return default
+
         st.markdown("---")
         st.subheader("💰 Seu valor de mercado atual")
 
@@ -420,13 +424,13 @@ if "last_results" in st.session_state:
         usa = market.get("usa", {})
         with col1:
             st.markdown("### 🇧🇷 Brasil")
-            st.markdown(f"**{br.get('currency', 'R$')} {br.get('min', 0):,.0f} – {br.get('max', 0):,.0f}/{br.get('period', 'mês')}**")
+            st.markdown(f"**{br.get('currency', 'R$')} {safe_num(br.get('min')):,.0f} – {safe_num(br.get('max')):,.0f}/{br.get('period', 'mês')}**")
         with col2:
             st.markdown("### 🇬🇧 Reino Unido")
-            st.markdown(f"**{uk.get('currency', '£')} {uk.get('min', 0):,.0f} – {uk.get('max', 0):,.0f}/{uk.get('period', 'ano')}**")
+            st.markdown(f"**{uk.get('currency', '£')} {safe_num(uk.get('min')):,.0f} – {safe_num(uk.get('max')):,.0f}/{uk.get('period', 'ano')}**")
         with col3:
             st.markdown("### 🇺🇸 Estados Unidos")
-            st.markdown(f"**{usa.get('currency', '$')} {usa.get('min', 0):,.0f} – {usa.get('max', 0):,.0f}/{usa.get('period', 'ano')}**")
+            st.markdown(f"**{usa.get('currency', '$')} {safe_num(usa.get('min')):,.0f} – {safe_num(usa.get('max')):,.0f}/{usa.get('period', 'ano')}**")
 
         skills_boost = market.get("skills_to_increase_salary", [])
         if skills_boost:
@@ -441,11 +445,11 @@ if "last_results" in st.session_state:
             st.markdown("Aprendendo as skills abaixo, você poderia chegar a:")
             col1, col2, col3 = st.columns(3)
             with col1:
-                st.markdown(f"🇧🇷 **R$ {after_br.get('min', 0):,.0f} – {after_br.get('max', 0):,.0f}/mês**")
+                st.markdown(f"🇧🇷 **R$ {safe_num(after_br.get('min')):,.0f} – {safe_num(after_br.get('max')):,.0f}/mês**")
             with col2:
-                st.markdown(f"🇬🇧 **£ {after_uk.get('min', 0):,.0f} – {after_uk.get('max', 0):,.0f}/ano**")
+                st.markdown(f"🇬🇧 **£ {safe_num(after_uk.get('min')):,.0f} – {safe_num(after_uk.get('max')):,.0f}/ano**")
             with col3:
-                st.markdown(f"🇺🇸 **$ {after_usa.get('min', 0):,.0f} – {after_usa.get('max', 0):,.0f}/ano**")
+                st.markdown(f"🇺🇸 **$ {safe_num(after_usa.get('min')):,.0f} – {safe_num(after_usa.get('max')):,.0f}/ano**")
 
             st.markdown("**Skills que mais aumentam seu salário:**")
             for skill in skills_boost:

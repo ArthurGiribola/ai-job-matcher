@@ -9,6 +9,7 @@ Analyze this resume and extract structured information.
 
 Return ONLY a valid JSON object with this exact structure:
 {{
+  "name": "Full candidate name or 'Candidato' if not found",
   "skills": [
     {{
       "name": "Python",
@@ -132,75 +133,6 @@ def get_skill_names(analysis: dict) -> list[str]:
 
 def get_skill_levels(analysis: dict) -> dict[str, str]:
     return {s["name"]: s["level"] for s in analysis.get("skills", [])}
-
-
-def generate_cover_letter(
-    analysis: dict,
-    job: dict,
-    matched_skills: list = None,
-) -> str:
-    """
-    Gera cover letter personalizado baseado no perfil do candidato e na vaga.
-    Detecta o idioma do currículo e escreve no mesmo idioma.
-    Máximo 250 palavras. Menciona top 3 skills que coincidem e um projeto concreto.
-    """
-    try:
-        client = _get_client()
-
-        # Top 3 skills que o candidato tem E a vaga pede
-        if matched_skills:
-            top_skills = matched_skills[:3]
-        else:
-            candidate_set = {s["name"].lower() for s in analysis.get("skills", [])}
-            job_skills = job.get("skills_required", [])
-            top_skills = [s for s in job_skills if s.lower() in candidate_set][:3]
-        if not top_skills:
-            top_skills = [s["name"] for s in analysis.get("skills", [])[:3]]
-
-        # Projeto concreto — usa primeiro ponto forte ou trecho do resumo
-        strengths = analysis.get("strengths", [])
-        concrete_example = strengths[0] if strengths else analysis.get("profile_summary", "")
-
-        prompt = f"""You are an expert professional writer and recruiter.
-
-Write a cover letter for this job application.
-
-Candidate profile:
-- Name: {analysis.get('name', 'the candidate')}
-- Level: {analysis.get('seniority', 'junior')}
-- Experience: {analysis.get('experience_years', 0)} years
-- Top matching skills for this role: {top_skills}
-- Concrete example / strength: {concrete_example}
-- Profile summary: {analysis.get('profile_summary', '')}
-
-Job:
-- Title: {job.get('title')}
-- Company: {job.get('company')}
-- Required skills: {job.get('skills_required', [])[:6]}
-- Level: {job.get('seniority')}
-
-Rules (follow strictly):
-- MAXIMUM 250 words — count them
-- Exactly 3 short paragraphs
-- Mention the job title "{job.get('title')}" and company "{job.get('company')}" by name
-- Mention these specific skills: {top_skills}
-- Reference this concrete example: {concrete_example}
-- End with a clear call to action
-- Do NOT invent experience that is not in the profile
-- Do NOT include date, address, or formal header
-- IMPORTANT: Detect the language of the profile_summary field and write the entire cover letter in THAT SAME LANGUAGE. If summary is in Portuguese, write in Portuguese. If in English, write in English."""
-
-        message = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=500,
-            messages=[{"role": "user", "content": prompt}]
-        )
-        result = message.content[0].text.strip()
-        print(f"[Claude OK] generate_cover_letter — {len(result)} chars")
-        return result
-    except Exception as e:
-        print(f"[Claude FAIL] generate_cover_letter — {type(e).__name__}: {e}")
-        return ""
 
 
 def generate_cover_letter_v2(

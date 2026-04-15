@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dotenv import load_dotenv
 load_dotenv()
 
-from app.services.resume_analyzer import analyze_resume, generate_cover_letter, generate_cover_letter_v2, generate_job_explanation
+from app.services.resume_analyzer import analyze_resume, generate_cover_letter_v2, generate_job_explanation
 
 RESUME = """
 Arthur Giribola - Computer Science Student 7th semester
@@ -26,39 +26,6 @@ Experience:
 
 Education: B.Sc Computer Science - UNIFAJ (7th semester)
 """
-
-def test_generate_cover_letter_returns_string():
-    analysis = {"seniority": "junior", "experience_years": 1, "skills": [], "strengths": [], "profile_summary": "test"}
-    job = {"title": "Python Dev", "company": "Test Co", "skills_required": ["Python"], "seniority": "junior"}
-    result = generate_cover_letter(analysis, job)
-    assert isinstance(result, str)
-
-
-def test_generate_cover_letter_with_matched_skills():
-    """matched_skills parameter should be accepted without error."""
-    analysis = {
-        "seniority": "junior", "experience_years": 1,
-        "skills": [{"name": "Python"}, {"name": "Docker"}],
-        "strengths": ["Built a KNN classifier"], "profile_summary": "test",
-    }
-    job = {"title": "Python Dev", "company": "Test Co", "skills_required": ["Python", "Docker"], "seniority": "junior"}
-    result = generate_cover_letter(analysis, job, matched_skills=["Python", "Docker"])
-    assert isinstance(result, str)
-
-
-def test_generate_cover_letter_no_api_returns_empty():
-    """Without API key the function should return '' not raise."""
-    import os
-    original = os.environ.pop("ANTHROPIC_API_KEY", None)
-    try:
-        analysis = {"seniority": "junior", "experience_years": 0, "skills": [], "strengths": [], "profile_summary": ""}
-        job = {"title": "Dev", "company": "Co", "skills_required": [], "seniority": "junior"}
-        result = generate_cover_letter(analysis, job)
-        assert isinstance(result, str)
-    finally:
-        if original:
-            os.environ["ANTHROPIC_API_KEY"] = original
-
 
 # ── generate_cover_letter_v2 tests ──────────────────────────────────────────
 
@@ -120,18 +87,10 @@ def test_generate_job_explanation_returns_string():
     assert isinstance(result, str)
 
 
-print("Analisando curriculo com Claude...\n")
-result = analyze_resume(RESUME)
-
-print(f"Source: {result.get('source')}")
-print(f"Senioridade: {result['seniority']}")
-print(f"Motivo: {result['seniority_reasoning']}")
-print(f"Anos de experiencia: {result['experience_years']}")
-print(f"Complexidade: {result['project_complexity']}")
-print(f"Pontos fortes: {result['strengths']}")
-print(f"Pontos fracos: {result['weaknesses']}")
-print(f"Red flags: {result['red_flags']}")
-print(f"Resumo: {result['profile_summary']}")
-print(f"\nSkills:")
-for skill in result['skills'][:5]:
-    print(f"  {skill['name']} - {skill['level']} - {skill['years']} anos")
+def test_analyze_resume_real_api():
+    """Teste de integração — chama Claude de verdade. Requer ANTHROPIC_API_KEY."""
+    result = analyze_resume(RESUME)
+    assert result is not None
+    assert "skills" in result
+    assert "seniority" in result
+    assert result["seniority"] in ("intern", "junior", "mid", "senior", "lead")

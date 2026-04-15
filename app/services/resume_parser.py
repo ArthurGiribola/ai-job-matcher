@@ -4,7 +4,6 @@ Extrai texto de PDFs e identifica skills automaticamente.
 """
 
 import re
-import spacy
 from pathlib import Path
 from pdfminer.high_level import extract_text
 
@@ -61,12 +60,6 @@ SENIORITY_KEYWORDS = {
     "senior": ["senior", "sênior", "sr", "especialista", "specialist", "5 anos", "6 anos", "7 anos", "8 anos"],
     "lead": ["lead", "líder", "lider", "tech lead", "principal", "staff", "architect", "arquiteto"],
 }
-
-try:
-    nlp = spacy.load("en_core_web_sm")
-except OSError:
-    nlp = None
-
 
 def extract_text_from_pdf(pdf_path: str) -> str:
     """Extrai texto bruto de um arquivo PDF."""

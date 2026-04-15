@@ -309,7 +309,8 @@ def fetch_jooble_jobs(query: str, location: str = "", limit: int = 10) -> list[d
             "page": 1,
         }
         response = requests.post(
-            f"https://jooble.org/api/{api_key}",
+            "https://jooble.org/api/",
+            headers={"Authorization": api_key},
             json=payload,
             timeout=10,
         )
@@ -490,12 +491,15 @@ def get_jobs(
     except Exception as e:
         print(f"[Enrich] Falhou: {e}")
 
-    cache_path = _DATA_DIR / f"jobs_cache_{country}.json"
-    cache_meta_path = _DATA_DIR / f"jobs_cache_{country}_meta.json"
-    cache_path.parent.mkdir(exist_ok=True)
-    with open(cache_path, "w", encoding="utf-8") as f:
-        json.dump(unique[:limit], f, ensure_ascii=False, indent=2)
-    with open(cache_meta_path, "w") as f:
-        json.dump({"timestamp": time.time(), "count": len(unique)}, f)
+    # Só salva cache se tiver vagas
+    if unique:
+        cache_path.parent.mkdir(exist_ok=True)
+        with open(cache_path, "w", encoding="utf-8") as f:
+            json.dump(unique, f, ensure_ascii=False, indent=2)
+        with open(cache_meta_path, "w") as f:
+            json.dump({"timestamp": time.time(), "count": len(unique)}, f)
+        print(f"[Cache] {len(unique)} vagas salvas para {country}")
+    else:
+        print(f"[Cache] Nenhuma vaga encontrada — cache não atualizado")
 
     return unique[:limit]

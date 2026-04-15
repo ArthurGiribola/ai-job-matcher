@@ -6,7 +6,7 @@ Logistic Regression treinado em dados sintéticos gerados internamente.
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 
-SENIORITY_LEVELS = {"junior": 1, "mid": 2, "senior": 3, "lead": 4, "any": 2}
+SENIORITY_LEVELS = {"intern": 0, "junior": 1, "mid": 2, "senior": 3, "lead": 4}
 
 # (semantic, skill_coverage, seniority_gap, exp_gap, has_must, hired)
 SYNTHETIC_DATA = [

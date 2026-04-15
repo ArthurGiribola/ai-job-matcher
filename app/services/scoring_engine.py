@@ -111,6 +111,7 @@ def calculate_final_score(
     candidate_seniority="junior",
     filters=None,
     resume_text: str = "",
+    experience_years: int = 0,
 ):
     filters = filters or {}
     job_skills = job.get("skills_required", [])
@@ -147,6 +148,7 @@ def calculate_final_score(
             job_skills=job_skills,
             candidate_seniority=candidate_seniority,
             job_seniority=job.get("seniority", "any"),
+            candidate_exp_years=experience_years,
         )
     except Exception as e:
         print(f"Hiring predictor falhou: {e}")
@@ -177,6 +179,7 @@ def rank_jobs(
     min_score=0.0,
     limit=20,
     resume_text: str = "",
+    experience_years: int = 0,
 ):
     results = []
     for job in jobs:
@@ -186,6 +189,7 @@ def rank_jobs(
             candidate_seniority,
             filters,
             resume_text=resume_text,
+            experience_years=experience_years,
         )
         if match["score"] >= min_score:
             results.append({

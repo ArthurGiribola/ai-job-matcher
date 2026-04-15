@@ -109,16 +109,6 @@ def cosine_similarity(vec_a: np.ndarray, vec_b: np.ndarray) -> float:
     return float(np.dot(vec_a, vec_b) / (norm_a * norm_b))
 
 
-def semantic_similarity(text_a: str, text_b: str) -> float:
-    """
-    Calcula similaridade semântica entre dois textos.
-    Retorna score entre 0.0 e 1.0.
-    """
-    vec_a = embed_text(text_a)
-    vec_b = embed_text(text_b)
-    return cosine_similarity(vec_a, vec_b)
-
-
 def resume_job_similarity(resume_text: str, job: dict) -> float:
     """
     Calcula similaridade semântica entre currículo e vaga.
