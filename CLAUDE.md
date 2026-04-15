@@ -26,29 +26,19 @@ tests/
   test_resume_analyzer.py  # Claude integration tests
 ```
 
-## O que está feito
-- Phase 1 DONE: Embeddings semânticos (all-MiniLM-L6-v2) substituindo Jaccard
-- Phase 2 DONE: Extração estruturada com Claude Haiku (skills com níveis, seniority, red flags)
-- Phase 3 DONE: Hiring probability (Logistic Regression) — exibe "Probabilidade de chamada: X%"
-- Phase 4 DONE: Explanation engine — Claude gera conselho personalizado para top 3 vagas
-- Phase 5 DONE:
-  - Cache persistente com TTL de 1 hora por país (jobs_cache_{country}_meta.json)
-  - st.cache_data com TTL de 30 minutos no Streamlit (cached_get_jobs)
-  - Enriquecimento de vagas com Claude Haiku (enrich_jobs_with_claude, max 8/busca)
-  - Botão "Apliquei para essa vaga" + histórico na sidebar (session_state)
-- Cover letter gerado pelo Claude para cada vaga
-- Scoring engine: 40% semantic + 20% seniority + 15% recency + 15% filters + 10% bonus
-- 3 fontes de vagas: Adzuna + Remotive + mock fallback
-- Lazy-loading de credenciais para funcionar no Streamlit Cloud (st.secrets)
-- Cartão visual de perfil após upload do PDF
-- Progress steps durante análise (em vez de spinner único)
-- Card estilizado da análise do Claude (seniority, experiência, complexidade)
-- Filtro de skills genéricas na seção "Skills para aprender" (OOP, Agile etc.)
-- Retry automático com query genérica se Adzuna retornar 0 vagas
-- Contador de vagas qualificadas vs exibidas
-- Links inválidos/mock ocultados corretamente
-- Descrição das vagas aumentada de 500 para 2000 chars
-- Skills GCP, Azure, LLM, TensorFlow, PyTorch adicionadas ao SKILL_RESOURCES
+## O que está feito (atualizado)
+- Phase 1 DONE: Embeddings semânticos (all-MiniLM-L6-v2)
+- Phase 2 DONE: Extração estruturada com Claude Haiku
+- Phase 3 DONE: Hiring probability (Logistic Regression)
+- Phase 4 DONE: Explanation engine para top 3 vagas
+- Phase 5 DONE: Cache persistente + enriquecimento de vagas + botão "Apliquei"
+- Phase 6 DONE: Supabase + sugestões de melhoria + validação de qualidade + cover letter
+- Phase 7 DONE: Geração de currículo profissional completo
+- Features extras: score de mercado, red flags, comparador de vagas, tradução para inglês, badges coloridos por fonte
+- 5 fontes de vagas: Adzuna, Remotive, Reed, Jooble, The Muse
+- Histórico persistente via Supabase + session_id via query params
+- UI polida com badges, pills, layout profissional
+- README profissional no GitHub
 - 31 testes passando
 
 ## Deploy
@@ -62,29 +52,11 @@ tests/
 - Claude analyzer tem fallback para parser básico se API indisponível
 - Credenciais lidas lazily dentro das funções (não no topo do módulo) para compatibilidade com Streamlit Cloud
 
-## Phase 6 (em andamento)
-- Supabase integrado — histórico de aplicações persiste entre sessões
-- Reescrita de currículo com Claude — 5 sugestões específicas por vaga
-- Botão "Apliquei para essa vaga" + histórico na sidebar
-- Sugestões de melhoria de currículo por vaga
-
-## Próximo passo — Phase 6 continuação
-- Validação de qualidade do currículo antes da análise
-
-## Phase 7 DONE — Geração de Currículo Profissional
-- generate_full_resume() — gera currículo novo completo em Markdown
-- Versão genérica: botão "✨ Gerar currículo profissional"
-- Versão otimizada por vaga: botão "🎯 Gerar currículo para essa vaga"
-- Resultado renderizado + área copiável
-
-## Próximo passo — Phase 8 (ideias)
-- Simulador de entrevista com Claude
-- Score de mercado (quanto você vale em R$, £, $)
+## Próximo passo — Phase 8
 - Autenticação de usuários
 - Dashboard de progresso de carreira
-
-## Problemas conhecidos
-- Histórico de aplicações some ao fechar o browser (session_state não persiste)
+- Download de currículo em PDF
+- Roadmap de carreira personalizado com Claude
 
 ## Testes
 - 31 testes passando em tests/
