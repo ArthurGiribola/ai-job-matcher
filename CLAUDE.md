@@ -26,20 +26,19 @@ tests/
   test_resume_analyzer.py  # Claude integration tests
 ```
 
-## O que está feito (atualizado)
-- Phase 1 DONE: Embeddings semânticos (all-MiniLM-L6-v2)
-- Phase 2 DONE: Extração estruturada com Claude Haiku
-- Phase 3 DONE: Hiring probability (Logistic Regression)
-- Phase 4 DONE: Explanation engine para top 3 vagas
-- Phase 5 DONE: Cache persistente + enriquecimento de vagas + botão "Apliquei"
-- Phase 6 DONE: Supabase + sugestões de melhoria + validação de qualidade + cover letter
-- Phase 7 DONE: Geração de currículo profissional completo
-- Features extras: score de mercado, red flags, comparador de vagas, tradução para inglês, badges coloridos por fonte
-- 5 fontes de vagas: Adzuna, Remotive, Reed, Jooble, The Muse
-- Histórico persistente via Supabase + session_id via query params
-- UI polida com badges, pills, layout profissional
-- README profissional no GitHub
-- 31 testes passando
+## O que está feito (atualizado — 15/04/2026)
+- Phases 1-7 DONE completas
+- 6 bugs críticos corrigidos (auditoria 1)
+- 12 bugs corrigidos (auditoria 2)
+- Código morto removido (spacy, semantic_similarity, cover_letter v1)
+- safe_num() para score de mercado
+- experience_years passado ao predictor
+- warmup_mock_jobs removido
+- intern adicionado ao SENIORITY_LEVELS
+- Nome do candidato extraído no EXTRACTION_PROMPT
+- Jooble API key movida para header
+- Cache não persiste mais 0 vagas
+- Testes limpados — sem chamadas globais à API
 
 ## Deploy
 - URL: https://ai-job-matcher-fwyk2y7xr5aedyhsckxjuw.streamlit.app
@@ -52,15 +51,22 @@ tests/
 - Claude analyzer tem fallback para parser básico se API indisponível
 - Credenciais lidas lazily dentro das funções (não no topo do módulo) para compatibilidade com Streamlit Cloud
 
-## Próximo passo — Phase 8
-- Autenticação de usuários
-- Dashboard de progresso de carreira
-- Download de currículo em PDF
-- Roadmap de carreira personalizado com Claude
+## Próximo passo — o que fazer na próxima sessão (em ordem)
+1. Feedback loop nas candidaturas — adicionar status: "Apliquei", "Fui chamado", "Fiz entrevista", "Recebi oferta", "Não responderam" — requer ALTER TABLE no Supabase e update_application_status() no database.py
+2. Aviso no modelo de probabilidade — deixar claro que é estimativa
+3. Refatoração do frontend — quebrar app.py em módulos
+4. Autenticação real com Supabase Auth
+5. Melhoria de UX geral
+
+## Bugs restantes conhecidos
+- fetch_muse_jobs category param incorreto
+- Session ID no URL — privacy risk
+- 16 funções sem testes
+- Cache de arquivo inútil no Streamlit Cloud
 
 ## Testes
-- 31 testes passando em tests/
-- Rodar com: python -m pytest tests/ -q
+- Rodar com: python -m pytest tests/test_resume_analyzer.py -q (6 passando)
+- test_scoring.py e test_embedder.py bloqueados por Application Control do Windows (DLL issue — não é bug do código)
 
 ## Regras do projeto
 - Nunca hardcodar API keys no código-fonte
