@@ -125,6 +125,26 @@ python -m pytest tests/ -q
 
 ---
 
+## ⚡ Performance
+
+Benchmarked on `all-MiniLM-L6-v2` (sentence-transformers) running locally on CPU (Windows 11).
+
+| # | Resume / Job Pair | Similarity Score | Latency |
+|---|-------------------|:----------------:|--------:|
+| 1 | Python ML Engineer — strong match | 0.735 | 774 ms |
+| 2 | Frontend React Dev — strong match | 0.870 | 38 ms |
+| 3 | Backend Python Dev — partial match (Go role) | 0.562 | 37 ms |
+| 4 | Data Analyst — moderate match (Data Scientist role) | 0.583 | 36 ms |
+| 5 | DevOps Engineer — strong match | 0.836 | 43 ms |
+| | **Average** | **0.717** | **186 ms** |
+
+- **Cold start** (model load into memory): ~2.7 s — happens once per session  
+- **Warm latency** (pairs 2–5): ~38 ms per match  
+- Pair 1 is slower (~774 ms) because it triggers the tokenizer cache initialisation on the first encode call  
+- Scores above 0.70 correspond to strong semantic matches; below 0.60 indicates a mismatch (as expected for the Go/DevOps cross-domain pairs)
+
+---
+
 ## 📸 Screenshots
 
 > Em breve
