@@ -194,7 +194,8 @@ with st.sidebar:
     selected_seniority = st.multiselect(
         "Nível",
         options=["All"] + _SENIORITY_OPTIONS,
-        default=_SENIORITY_OPTIONS,
+        default=[],
+        placeholder="Todos os níveis (sem filtro)",
     )
     # "All" selected or empty → no seniority filter
     if not selected_seniority or "All" in selected_seniority:
