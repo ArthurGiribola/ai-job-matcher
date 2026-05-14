@@ -164,23 +164,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 with st.sidebar:
-    st.sidebar.markdown("""
-<div style="text-align:center; padding:10px 0 20px 0;">
-    <h2 style="margin:0;">⚙️ Filtros</h2>
-</div>
-""", unsafe_allow_html=True)
-    _SENIORITY_OPTIONS = ["Intern", "Junior", "Mid", "Senior", "Lead"]
-    selected_seniority = st.multiselect(
-        "Nível",
-        options=["All"] + _SENIORITY_OPTIONS,
-        default=_SENIORITY_OPTIONS,
-    )
-    # "All" selected or empty → no seniority filter
-    if not selected_seniority or "All" in selected_seniority:
-        seniority_filter = []
-    else:
-        seniority_filter = [s.lower() for s in selected_seniority]
-
+    # ── Section 1: Localização ───────────────────────────────────────────────
+    st.markdown("**🌍 Localização**")
     country_name = st.selectbox("País", list(COUNTRY_OPTIONS.keys()))
     country_code = COUNTRY_OPTIONS[country_name]
 
@@ -199,13 +184,34 @@ with st.sidebar:
             )
             if city_choice != "— usar como digitado —":
                 city = city_choice
-    st.caption("Digite qualquer cidade do mundo")
+    st.caption("Sugestões aparecem após 3 caracteres")
+
+    st.markdown("---")
+
+    # ── Section 2: Perfil ────────────────────────────────────────────────────
+    st.markdown("**🎯 Perfil**")
+    _SENIORITY_OPTIONS = ["Intern", "Junior", "Mid", "Senior", "Lead"]
+    selected_seniority = st.multiselect(
+        "Nível",
+        options=["All"] + _SENIORITY_OPTIONS,
+        default=_SENIORITY_OPTIONS,
+    )
+    # "All" selected or empty → no seniority filter
+    if not selected_seniority or "All" in selected_seniority:
+        seniority_filter = []
+    else:
+        seniority_filter = [s.lower() for s in selected_seniority]
+
+    st.markdown("---")
+
+    # ── Section 3: Filtros ───────────────────────────────────────────────────
+    st.markdown("**⚙️ Filtros**")
     remote_only = st.checkbox("Apenas vagas remotas", value=False)
     min_score = st.slider("Score mínimo (%)", 0, 100, 40) / 100
     limit = st.slider("Número de vagas", 5, 20, 10)
 
-    st.sidebar.markdown("---")
-    st.sidebar.markdown("### 📋 Vagas que apliquei")
+    st.markdown("---")
+    st.markdown("**📋 Vagas que apliquei**")
     if st.session_state.get("applied_jobs"):
         for app_job in st.session_state.applied_jobs:
             title = app_job.get("job_title") or app_job.get("title", "")
