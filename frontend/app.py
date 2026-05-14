@@ -193,12 +193,12 @@ with st.sidebar:
     _SENIORITY_OPTIONS = ["Intern", "Junior", "Mid", "Senior", "Lead"]
     selected_seniority = st.multiselect(
         "Nível",
-        options=["All"] + _SENIORITY_OPTIONS,
+        options=_SENIORITY_OPTIONS,
         default=[],
         placeholder="Todos os níveis (sem filtro)",
     )
-    # "All" selected or empty → no seniority filter
-    if not selected_seniority or "All" in selected_seniority:
+    # empty → no seniority filter
+    if not selected_seniority:
         seniority_filter = []
     else:
         seniority_filter = [s.lower() for s in selected_seniority]
