@@ -4,7 +4,25 @@
       "Bash(python -m pytest tests/ -q)",
       "Bash(python -c \"import ast; ast.parse\\(open\\(''frontend/app.py''\\).read\\(\\)\\); print\\(''syntax OK''\\)\")",
       "Bash(python -c ':*)",
-      "Bash(streamlit run:*)"
+      "Bash(streamlit run:*)",
+      "Bash(pip install:*)",
+      "Bash(pip show:*)",
+      "Bash(venv/Scripts/pip show:*)",
+      "Bash(venv/Scripts/pip install:*)",
+      "Bash(venv/Scripts/pip list:*)",
+      "Bash(venv/Scripts/python -c \"import supabase; print\\(supabase.__version__\\)\")",
+      "Bash(venv/Scripts/python -c \"from supabase import create_client; print\\('OK'\\)\")",
+      "Bash(venv/Scripts/python -c \"from supabase import create_client; print\\('supabase OK'\\)\")",
+      "Bash(python:*)",
+      "Bash(venv/Scripts/python -m pytest tests/ -q)",
+      "Bash(venv/Scripts/python -c \"from app.services.embedder import embed_text; print\\('embedder OK'\\)\")",
+      "Bash(venv/Scripts/python -c \"from app.services.resume_analyzer import analyze_resume; print\\('analyzer OK'\\)\")",
+      "Bash(venv/Scripts/python -c \"from app.services.job_collector import get_jobs; print\\('collector OK'\\)\")",
+      "Bash(venv/Scripts/python -c \"from app.services.scoring_engine import rank_jobs; print\\('scoring OK'\\)\")",
+      "Bash(venv/Scripts/python -c \"from app.services.hiring_predictor import predict_hiring_probability; print\\('predictor OK'\\)\")",
+      "Bash(venv/Scripts/python -c ':*)",
+      "Bash(rm:*)",
+      "Bash(powershell -Command ' *)"
     ]
   }
 }
