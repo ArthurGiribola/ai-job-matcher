@@ -26,6 +26,39 @@ def cached_get_jobs(skills_tuple, limit, country_code, city):
         country=country_code,
         location=city,
     )
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def fetch_city_suggestions(country_code: str, query: str) -> list[str]:
+    """Fetch city name suggestions from the Adzuna locations API."""
+    import requests
+    try:
+        import os
+        app_id = os.getenv("ADZUNA_APP_ID")
+        app_key = os.getenv("ADZUNA_APP_KEY")
+        if not app_id or not app_key:
+            try:
+                app_id = app_id or st.secrets.get("ADZUNA_APP_ID")
+                app_key = app_key or st.secrets.get("ADZUNA_APP_KEY")
+            except Exception:
+                pass
+        if not app_id or not app_key:
+            return []
+        url = f"https://api.adzuna.com/v1/api/jobs/{country_code}/locations"
+        resp = requests.get(
+            url,
+            params={"app_id": app_id, "app_key": app_key, "location0": query},
+            timeout=4,
+        )
+        if resp.status_code != 200:
+            return []
+        data = resp.json()
+        locations = data.get("locations", [])
+        return [loc["location"]["display_name"] for loc in locations if loc.get("location", {}).get("display_name")]
+    except Exception:
+        return []
+
+
 from app.services.scoring_engine import rank_jobs, get_top_missing_skills
 
 SKILL_RESOURCES = {
@@ -136,10 +169,36 @@ with st.sidebar:
     <h2 style="margin:0;">⚙️ Filtros</h2>
 </div>
 """, unsafe_allow_html=True)
-    seniority = st.selectbox("Nível", ["junior", "mid", "senior", "lead"])
+    _SENIORITY_OPTIONS = ["Intern", "Junior", "Mid", "Senior", "Lead"]
+    selected_seniority = st.multiselect(
+        "Nível",
+        options=["All"] + _SENIORITY_OPTIONS,
+        default=_SENIORITY_OPTIONS,
+    )
+    # "All" selected or empty → no seniority filter
+    if not selected_seniority or "All" in selected_seniority:
+        seniority_filter = []
+    else:
+        seniority_filter = [s.lower() for s in selected_seniority]
+
     country_name = st.selectbox("País", list(COUNTRY_OPTIONS.keys()))
     country_code = COUNTRY_OPTIONS[country_name]
-    city = st.text_input("Cidade (opcional)", placeholder="Ex: London, Berlin, São Paulo...")
+
+    city_input = st.text_input("Cidade (opcional)", placeholder="Ex: London, Berlin, São Paulo...")
+    city = city_input.strip()
+    if len(city) >= 3:
+        _cache_key = f"city_suggestions_{country_code}_{city.lower()}"
+        if _cache_key not in st.session_state:
+            st.session_state[_cache_key] = fetch_city_suggestions(country_code, city)
+        suggestions = st.session_state[_cache_key]
+        if suggestions:
+            city_choice = st.selectbox(
+                "Sugestões:",
+                options=["— usar como digitado —"] + suggestions,
+                key=f"city_sel_{city.lower()}",
+            )
+            if city_choice != "— usar como digitado —":
+                city = city_choice
     st.caption("Digite qualquer cidade do mundo")
     remote_only = st.checkbox("Apenas vagas remotas", value=False)
     min_score = st.slider("Score mínimo (%)", 0, 100, 40) / 100
@@ -271,7 +330,7 @@ if analyze_btn:
             results = rank_jobs(
                 jobs=jobs,
                 candidate_skills=profile["skills"],
-                candidate_seniority=profile.get("seniority", seniority),
+                candidate_seniority=profile.get("seniority", "junior"),
                 limit=50,
                 resume_text=final_text,
                 experience_years=analysis.get("experience_years", 0),
@@ -281,6 +340,8 @@ if analyze_btn:
 
             if remote_only:
                 results = [r for r in results if r["job"].get("remote")]
+            if seniority_filter:
+                results = [r for r in results if r["job"].get("seniority", "").lower() in seniority_filter]
             results_filtered = [r for r in results if r["score"] >= min_score]
             total_qualified = len(results_filtered)
             results = results_filtered[:limit]
