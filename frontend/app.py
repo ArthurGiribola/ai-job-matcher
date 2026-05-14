@@ -120,10 +120,34 @@ CURRENCY_BY_COUNTRY = {
     "mx": "$MX", "ru": "₽",
 }
 
+CURRENCY_TO_ISO = {
+    "£": "GBP", "€": "EUR", "A$": "AUD", "C$": "CAD",
+    "CHF": "CHF", "S$": "SGD", "NZ$": "NZD", "R": "ZAR",
+    "₹": "INR", "R$": "BRL", "$MX": "MXN", "₽": "RUB", "$": "USD",
+}
+
 COUNTRY_OPTIONS = {name: code for code, name in SUPPORTED_COUNTRIES.items()}
 
 
-def format_salary(salary_min, salary_max, country_code, source):
+def get_usd_rates() -> dict:
+    """Fetch USD exchange rates, cached in session_state for 1 hour."""
+    import time
+    import requests
+    cache = st.session_state.get("usd_rates_cache")
+    if cache and time.time() - cache["timestamp"] < 3600:
+        return cache["rates"]
+    try:
+        resp = requests.get("https://open.er-api.com/v6/latest/USD", timeout=5)
+        if resp.status_code == 200:
+            rates = resp.json().get("rates", {})
+            st.session_state["usd_rates_cache"] = {"rates": rates, "timestamp": time.time()}
+            return rates
+    except Exception:
+        pass
+    return {}
+
+
+def format_salary(salary_min, salary_max, country_code, source, usd_rates=None):
     if source in ["gupy", "mock", "linkedin"] or country_code == "br":
         currency = "R$"
     elif source == "remotive":
@@ -133,8 +157,19 @@ def format_salary(salary_min, salary_max, country_code, source):
     if not salary_min and not salary_max:
         return "Não informado"
     if salary_max:
-        return f"{currency} {salary_min:,.0f} – {salary_max:,.0f}"
-    return f"{currency} {salary_min:,.0f}+"
+        original = f"{currency} {salary_min:,.0f} – {salary_max:,.0f}"
+    else:
+        original = f"{currency} {salary_min:,.0f}+"
+    if usd_rates and currency != "$":
+        iso = CURRENCY_TO_ISO.get(currency)
+        rate = usd_rates.get(iso) if iso else None
+        if rate and rate > 0:
+            usd_min = salary_min / rate if salary_min else 0
+            usd_max = salary_max / rate if salary_max else 0
+            if salary_max:
+                return f"$ {usd_min:,.0f} – {usd_max:,.0f} ({original})"
+            return f"$ {usd_min:,.0f}+ ({original})"
+    return original
 
 
 # Persistência do session_id via query params
@@ -208,6 +243,7 @@ with st.sidebar:
     # ── Section 3: Filtros ───────────────────────────────────────────────────
     st.markdown("**⚙️ Filtros**")
     remote_only = st.checkbox("Apenas vagas remotas", value=False)
+    show_usd = st.checkbox("Mostrar salários em USD", value=False)
     min_score = st.slider("Score mínimo (%)", 0, 100, 40) / 100
     limit = st.slider("Número de vagas", 5, 20, 10)
 
@@ -218,7 +254,7 @@ with st.sidebar:
             title = app_job.get("job_title") or app_job.get("title", "")
             st.sidebar.markdown(
                 f"**{title}**  \n"
-                f"{app_job['company']} | {app_job['score']} match  \n"
+                f"{app_job['company']} | {app_job['score']} compatibilidade  \n"
                 f"🎯 {app_job.get('hiring_prob', '—')} prob. | {app_job.get('applied_at', '—')}"
             )
         if st.sidebar.button("🗑️ Limpar histórico"):
@@ -229,9 +265,11 @@ with st.sidebar:
     else:
         st.sidebar.caption("Nenhuma aplicação ainda.")
 
+usd_rates = get_usd_rates() if show_usd else {}
+
 st.markdown("---")
 
-tab1, tab2 = st.tabs(["📄 Colar texto", "📎 Upload PDF"])
+tab1, tab2 = st.tabs(["📄 Colar texto", "📎 Enviar PDF"])
 resume_text = ""
 resume_text_from_pdf = ""
 
@@ -393,7 +431,7 @@ if "last_results" in st.session_state:
     with col3:
         st.metric("Vagas analisadas", jobs_count)
     with col4:
-        st.metric("Matches encontrados", len(results))
+        st.metric("Vagas compatíveis", len(results))
 
     st.markdown("**🛠️ Skills identificadas:**")
     st.markdown("  ".join([f'<span style="background:#2d2d4e; color:#7c7cff; padding:3px 10px; border-radius:20px; margin:3px; display:inline-block; font-size:0.85em;">{s}</span>' for s in profile["skills"]]), unsafe_allow_html=True)
@@ -604,10 +642,10 @@ if "last_results" in st.session_state:
                 # Compact 3-column metrics
                 col1, col2, col3 = st.columns(3)
                 with col1:
-                    st.metric("Match", result["score_percent"])
+                    st.metric("Compatibilidade", result["score_percent"])
                 with col2:
                     st.metric("Salário", format_salary(
-                        job.get("salary_min", 0), job.get("salary_max", 0), job_country, source,
+                        job.get("salary_min", 0), job.get("salary_max", 0), job_country, source, usd_rates,
                     ))
                 with col3:
                     st.metric("Modalidade", "🌐 Remoto" if job.get("remote") else "🏢 Presencial")
@@ -648,7 +686,7 @@ if "last_results" in st.session_state:
                             "hiring_prob": f"{int(result.get('hiring_probability', 0) * 100)}%",
                             "matched": result.get("matched_skills", []),
                             "missing": result.get("missing_skills", []),
-                            "salary": format_salary(job.get("salary_min", 0), job.get("salary_max", 0), job.get("country", "gb"), job.get("source", "")),
+                            "salary": format_salary(job.get("salary_min", 0), job.get("salary_max", 0), job.get("country", "gb"), job.get("source", ""), usd_rates),
                             "remote": "🌐 Remoto" if job.get("remote") else "🏢 Presencial",
                             "seniority": job.get("seniority", "").upper(),
                         })
@@ -722,7 +760,7 @@ if "last_results" in st.session_state:
 
                 col_btn1, col_btn2, col_btn3 = st.columns(3)
                 with col_btn1:
-                    if st.button("✉️ Gerar Cover Letter", key=f"cover_btn_{i}", use_container_width=True):
+                    if st.button("✉️ Gerar Carta de Apresentação", key=f"cover_btn_{i}", use_container_width=True):
                         original_input_val = st.session_state.get(f"original_letter_{i}", "")
                         with st.spinner("✍️ Claude analisando e escrevendo..."):
                             cover_data = generate_cover_letter_v2(
@@ -763,8 +801,8 @@ if "last_results" in st.session_state:
             with cols[idx]:
                 st.markdown(f"**{cjob['title']}**")
                 st.markdown(f"🏢 {cjob['company']}")
-                st.markdown(f"📊 Match: **{cjob['score']}**")
-                st.markdown(f"🎯 Prob: **{cjob['hiring_prob']}**")
+                st.markdown(f"📊 Compatibilidade: **{cjob['score']}**")
+                st.markdown(f"🎯 Probabilidade: **{cjob['hiring_prob']}**")
                 st.markdown(f"💰 {cjob['salary']}")
                 st.markdown(f"📍 {cjob['remote']}")
                 st.markdown(f"👤 {cjob['seniority']}")
@@ -784,7 +822,7 @@ if "last_results" in st.session_state:
     )
     if cover_indices:
         st.markdown("---")
-        st.subheader("✉️ Cover Letters")
+        st.subheader("✉️ Cartas de Apresentação")
         for idx in cover_indices:
             data      = st.session_state[f"cover_data_{idx}"]
             job_r     = results[idx]["job"] if idx < len(results) else {}
